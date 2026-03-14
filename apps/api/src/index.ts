@@ -7,7 +7,13 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (_req, res) => {
+    const users = await prisma.user.findMany();
   res.send("Hello Express!");
+});
+
+app.get("/users", async (_req, res) => {
+  const users = await prisma.user.findMany();
+  res.json({ users });
 });
 
 app.listen(8000, () => {
