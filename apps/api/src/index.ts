@@ -13,7 +13,8 @@ app.get("/", (_req, res) => {
 });
 
 app.get("/users", async (_req, res) => {
-  const users = await prisma.user.findMany();
+  const users = await prisma.users.findMany();
+
   res.json({ users });
 });
 
@@ -25,7 +26,7 @@ app.post("/users", async (req, res) => {
     return;
   }
 
-  const newUser = await prisma.user.create({
+  const newUser = await prisma.users.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email,
