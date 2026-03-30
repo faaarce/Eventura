@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -12,11 +7,52 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email String @unique
-  password String 
-  name String
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+model events {
+  id           Int            @id @default(autoincrement())
+  name         String
+  description  String
+  category     String
+  location     String
+  venue        String
+  imageUrl     String?
+  startDate    DateTime
+  endDate      DateTime
+  isFree       Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  organizerId  Int
+  users        users          @relation(fields: [organizerId], references: [id])
+  ticket_types ticket_types[]
+}
+
+model ticket_types {
+  id             Int      @id @default(autoincrement())
+  name           String
+  price          Int
+  availableSeats Int
+  totalSeats     Int
+  createdAt      DateTime @default(now())
+  eventId        Int
+  events         events   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model users {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role
+  referralCode String   @unique
+  profileImage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  referredById Int?
+  events       events[]
+  users        users?   @relation("usersTousers", fields: [referredById], references: [id])
+  other_users  users[]  @relation("usersTousers")
+}
+
+enum Role {
+  CUSTOMER
+  ORGANIZER
 }
