@@ -1,0 +1,86 @@
+import type { Request, Response, NextFunction } from "express";
+import { EventService } from "../services/event.service.js";
+import z from "zod";
+
+const eventService = new EventService();
+
+const createEventSchema = z.object({
+  name: z.string().min(3),
+  description: z.string().min(10),
+  category: z.string().min(1),
+  location: z.string().min(1),
+  venue: z.string().min(1),
+  startDate: z.string(),
+  endDate: z.string(),
+  isFree: z.boolean(),
+  imageUrl: z.string().optional(),
+  ticketTypes: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        price: z.number().min(0),
+        totalSeats: z.number().min(1),
+      })
+    )
+    .min(1, "At least one ticket type is required"),
+});
+
+export class EventController {
+  async create(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = createEventSchema.parse(req.body);
+      const result = await eventService.create(req.user!.userId, data);
+      res.status(201).json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async findAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await eventService.findAll(req.query as Record<string, string>);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async findById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await eventService.findById(req.params.id);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await eventService.update(req.params.id, req.user!.userId, req.body);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await eventService.delete(req.params.id, req.user!.userId);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMyEvents(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await eventService.getOrganizerEvents(
+        req.user!.userId,
+        req.query as Record<string, string>
+      );
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+}

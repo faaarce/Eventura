@@ -1,3 +1,5 @@
+// apps/api/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -7,52 +9,61 @@ datasource db {
   provider = "postgresql"
 }
 
-model events {
-  id           Int            @id @default(autoincrement())
-  name         String
-  description  String
-  category     String
-  location     String
-  venue        String
-  imageUrl     String?
-  startDate    DateTime
-  endDate      DateTime
-  isFree       Boolean        @default(false)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  organizerId  Int
-  users        users          @relation(fields: [organizerId], references: [id])
-  ticket_types ticket_types[]
-}
-
-model ticket_types {
-  id             Int      @id @default(autoincrement())
-  name           String
-  price          Int
-  availableSeats Int
-  totalSeats     Int
-  createdAt      DateTime @default(now())
-  eventId        Int
-  events         events   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-}
-
-model users {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  password     String
-  role         Role
-  referralCode String   @unique
-  profileImage String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime
-  referredById Int?
-  events       events[]
-  users        users?   @relation("usersTousers", fields: [referredById], references: [id])
-  other_users  users[]  @relation("usersTousers")
-}
-
 enum Role {
   CUSTOMER
   ORGANIZER
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique
+  password     String
+  name         String
+  role         Role
+  referralCode String   @unique @map("referral_code")
+  profileImage String?  @map("profile_image")
+  referredById String?  @map("referred_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  referredBy User?  @relation("Referrals", fields: [referredById], references: [id])
+  referrals  User[] @relation("Referrals")
+  events     Event[]
+
+  @@map("users")
+}
+
+model Event {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String
+  category    String
+  location    String
+  venue       String
+  imageUrl    String?  @map("image_url")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  isFree      Boolean  @default(false) @map("is_free")
+  organizerId String   @map("organizer_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  organizer   User         @relation(fields: [organizerId], references: [id])
+  ticketTypes TicketType[]
+
+  @@map("events")
+}
+
+model TicketType {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  price          Int
+  availableSeats Int      @map("available_seats")
+  totalSeats     Int      @map("total_seats")
+  eventId        String   @map("event_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_types")
 }

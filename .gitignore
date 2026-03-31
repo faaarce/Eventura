@@ -45,3 +45,14 @@ node_modules
 
 /src/generated/prisma
 generated/
+
+# Repomix output
+repomix-output.xml
+
+# Repomix output
+repomix-output/
+
+# All repomix outputs
+repomix-*/
+
+repomix-*.xml

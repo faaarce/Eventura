@@ -1,41 +1,20 @@
-import { api } from "@/utils/api";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: App,
-  loader: async () => {
-    return await api.get("users").json();
-  },
+  component: HomePage,
 });
 
-function App() {
-  const router = useRouter();
-  const data = Route.useLoaderData();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-
-  async function handleAddUser() {
-    await api.post("users", {
-      json: { name, email },
-    });
-    router.invalidate();
-  }
-
+function HomePage() {
   return (
-    <div>
-      <div>
-        {data.users.map((user: any) => {
-          return <div key={user.id}>{user.name}</div>;
-        })}
-      </div>
-      <div>
-        <input placeholder="name" onChange={(e) => setName(e.target.value)} />
-        <input placeholder="email" onChange={(e) => setEmail(e.target.value)} />
-        <button type="submit" onClick={handleAddUser}>
-          Add User
-        </button>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6">
+      <h1 className="text-4xl font-bold">Welcome to Eventura</h1>
+      <Link
+        to="/events"
+        className="rounded-full bg-[var(--lagoon)] px-6 py-3 font-semibold text-white no-underline"
+      >
+        Browse Events
+      </Link>
     </div>
   );
 }
