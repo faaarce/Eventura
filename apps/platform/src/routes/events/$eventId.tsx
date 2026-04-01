@@ -95,7 +95,10 @@ function EventDetailPage() {
             </div>
           </div>
 
-          <div className="rise-in flex flex-1 flex-col" style={{ animationDelay: "80ms" }}>
+          <div
+            className="rise-in flex flex-1 flex-col"
+            style={{ animationDelay: "80ms" }}
+          >
             <h1 className="display-title text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl">
               {event.title}
             </h1>
@@ -122,10 +125,14 @@ function EventDetailPage() {
             </div>
 
             <div className="mt-6 hidden flex-col gap-3 sm:mt-8 md:flex">
-              <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-4 text-base font-bold text-[#0a0a0a] transition-all hover:bg-white/90">
+              <Link
+                to="/events/$eventId/checkout"
+                params={{ eventId: event.id }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-4 text-base font-bold text-[#0a0a0a] no-underline transition-all hover:bg-white/90"
+              >
                 <Ticket size={20} />
                 Get Tickets — {formatPrice(event.price, event.currency)}
-              </button>
+              </Link>
               <div className="flex gap-3">
                 <button
                   onClick={() => setLiked(!liked)}
@@ -155,8 +162,8 @@ function EventDetailPage() {
                 Join us for an unforgettable experience at {event.venue} in{" "}
                 {event.city}. This {event.category} brings together enthusiasts
                 and professionals from all over for a day of inspiration,
-                connection, and great moments. Don't miss out — limited
-                spots available.
+                connection, and great moments. Don't miss out — limited spots
+                available.
               </p>
             </div>
 
@@ -235,10 +242,15 @@ function EventDetailPage() {
               <Share2 size={18} className="text-white/60" />
             </button>
           </div>
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-[#0a0a0a]">
+          // Jadi ini:
+          <Link
+            to="/events/$eventId/checkout"
+            params={{ eventId: event.id }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-[#0a0a0a] no-underline"
+          >
             <Ticket size={18} />
             Get Tickets — {formatPrice(event.price, event.currency)}
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -248,13 +260,22 @@ function EventDetailPage() {
         <div className="page-wrap flex flex-col items-center gap-4 py-6 text-sm text-white/30 sm:flex-row sm:justify-between sm:py-8">
           <p>© 2026 Eventura</p>
           <div className="flex gap-6">
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Privacy
             </a>
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Terms
             </a>
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Get help
             </a>
           </div>
