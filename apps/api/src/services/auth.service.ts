@@ -23,21 +23,29 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(input.password, 10);
 
-    // Generate unique referral code
     let referralCode: string;
     do {
       referralCode = generateReferralCode();
     } while (await prisma.user.findUnique({ where: { referralCode } }));
 
-    // Handle referral: find referrer by code
-    let referredById: string | undefined;
+    let referredById: number | undefined;
 
+    // If referral code provided, validate and reward
     if (input.referralCode) {
       const referrer = await prisma.user.findUnique({
         where: { referralCode: input.referralCode },
       });
       if (!referrer) throw new ApiError(400, "Invalid referral code");
       referredById = referrer.id;
+
+      // Give referrer 10,000 points (expires in 3 months)
+      await prisma.point.create({
+        data: {
+          userId: referrer.id,
+          amount: 10000,
+          expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        },
+      });
     }
 
     const user = await prisma.user.create({
@@ -58,6 +66,17 @@ export class AuthService {
         createdAt: true,
       },
     });
+
+    // If registered with referral, give new user 10,000 points too
+    if (referredById) {
+      await prisma.point.create({
+        data: {
+          userId: user.id,
+          amount: 10000,
+          expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
 
     const token = this.generateToken(user.id, user.email, user.role);
 
@@ -85,7 +104,7 @@ export class AuthService {
     };
   }
 
-  async getProfile(userId: string) {
+  async getProfile(userId: number) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -100,10 +119,20 @@ export class AuthService {
     });
     if (!user) throw new ApiError(404, "User not found");
 
-    return user;
+    // Get available points
+    const points = await prisma.point.findMany({
+      where: {
+        userId,
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    const totalPoints = points.reduce((sum, p) => sum + p.amount, 0);
+
+    return { ...user, totalPoints };
   }
 
-  private generateToken(userId: string, email: string, role: string): string {
+  private generateToken(userId: number, email: string, role: string): string {
     return jwt.sign(
       { userId, email, role },
       process.env.JWT_SECRET!,
