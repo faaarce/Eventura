@@ -9,10 +9,27 @@ datasource db {
   provider = "postgresql"
 }
 
+// ============================================================
+// ENUMS
+// ============================================================
+
 enum Role {
   CUSTOMER
   ORGANIZER
 }
+
+enum TransactionStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_CONFIRMATION
+  DONE
+  REJECTED
+  EXPIRED
+  CANCELED
+}
+
+// ============================================================
+// MODELS
+// ============================================================
 
 model User {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -26,9 +43,14 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  referredBy User?  @relation("Referrals", fields: [referredById], references: [id])
-  referrals  User[] @relation("Referrals")
-  events     Event[]
+  referredBy   User?  @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[] @relation("Referrals")
+
+  events       Event[]
+  transactions Transaction[]
+  reviews      Review[]
+  points       Point[]
+  coupons      Coupon[]
 
   @@map("users")
 }
@@ -48,8 +70,11 @@ model Event {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  organizer   User         @relation(fields: [organizerId], references: [id])
-  ticketTypes TicketType[]
+  organizer    User          @relation(fields: [organizerId], references: [id])
+  ticketTypes  TicketType[]
+  vouchers     Voucher[]
+  transactions Transaction[]
+  reviews      Review[]
 
   @@map("events")
 }
@@ -63,7 +88,110 @@ model TicketType {
   eventId        String   @map("event_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at")
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event            Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  transactionItems TransactionItem[]
 
   @@map("ticket_types")
+}
+
+model Voucher {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code           String   @unique
+  discountAmount Int      @map("discount_amount")
+  startDate      DateTime @map("start_date")
+  endDate        DateTime @map("end_date")
+  maxUsage       Int      @map("max_usage")
+  usedCount      Int      @default(0) @map("used_count")
+  eventId        String   @map("event_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("vouchers")
+}
+
+model Coupon {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code           String   @unique
+  discountAmount Int      @map("discount_amount")
+  isUsed         Boolean  @default(false) @map("is_used")
+  expiresAt      DateTime @map("expires_at")
+  userId         String   @map("user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user        User         @relation(fields: [userId], references: [id])
+  transaction Transaction?
+
+  @@map("coupons")
+}
+
+model Point {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  amount    Int
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("points")
+}
+
+model Transaction {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceNumber   String            @unique @map("invoice_number")
+  status          TransactionStatus @default(WAITING_FOR_PAYMENT)
+  totalPrice      Int               @map("total_price")
+  finalPrice      Int               @map("final_price")
+  pointsUsed      Int               @default(0) @map("points_used")
+  paymentProof    String?           @map("payment_proof")
+  paymentDeadline DateTime          @map("payment_deadline")
+  expiresAt       DateTime          @map("expires_at")
+  userId          String            @map("user_id") @db.Uuid
+  eventId         String            @map("event_id") @db.Uuid
+  voucherId       String?           @map("voucher_id") @db.Uuid
+  couponId        String?           @unique @map("coupon_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id])
+  event   Event    @relation(fields: [eventId], references: [id])
+  voucher Voucher? @relation(fields: [voucherId], references: [id])
+  coupon  Coupon?  @relation(fields: [couponId], references: [id])
+  items   TransactionItem[]
+
+  @@index([status])
+  @@index([userId])
+  @@index([eventId])
+  @@map("transactions")
+}
+
+model TransactionItem {
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  quantity      Int
+  pricePerUnit  Int    @map("price_per_unit")
+  ticketTypeId  String @map("ticket_type_id") @db.Uuid
+  transactionId String @map("transaction_id") @db.Uuid
+
+  ticketType  TicketType  @relation(fields: [ticketTypeId], references: [id])
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_items")
+}
+
+model Review {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rating    Int
+  comment   String?
+  userId    String   @map("user_id") @db.Uuid
+  eventId   String   @map("event_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+  @@map("reviews")
 }

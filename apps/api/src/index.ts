@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.routes.js";
 import { eventRouter } from "./routes/event.routes.js";
+import { transactionRouter } from "./routes/transaction.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -17,6 +18,7 @@ app.get("/", (_req, res) => {
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/events", eventRouter);
+app.use("/api/transactions", transactionRouter);
 
 // Global error handler (must be last)
 app.use(errorHandler);

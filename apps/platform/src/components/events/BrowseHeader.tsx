@@ -39,7 +39,7 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
           <a href="#" className="text-white/55 no-underline">
             Get help
           </a>
-          <a href="#" className="text-white/55 no-underline">
+          <a href="/auth/login" className="text-white/55 no-underline">
             Log in / Sign up
           </a>
           <button className="rounded-full bg-white px-5 py-2 text-sm font-bold text-[#0a0a0a]">

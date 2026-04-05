@@ -18,6 +18,7 @@ interface LoginInput {
 
 export class AuthService {
   async register(input: RegisterInput) {
+    // Check email uniqueness
     const existing = await prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new ApiError(400, "Email already registered");
 
@@ -29,39 +30,69 @@ export class AuthService {
       referralCode = generateReferralCode();
     } while (await prisma.user.findUnique({ where: { referralCode } }));
 
-    // Handle referral: find referrer by code
-    let referredById: string | undefined;
-
+    // Validate referral code if provided
+    let referrer: { id: string } | null = null;
     if (input.referralCode) {
-      const referrer = await prisma.user.findUnique({
+      referrer = await prisma.user.findUnique({
         where: { referralCode: input.referralCode },
+        select: { id: true },
       });
       if (!referrer) throw new ApiError(400, "Invalid referral code");
-      referredById = referrer.id;
     }
 
-    const user = await prisma.user.create({
-      data: {
-        name: input.name,
-        email: input.email,
-        password: hashedPassword,
-        role: input.role,
-        referralCode,
-        referredById,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        referralCode: true,
-        createdAt: true,
-      },
+    // Wrap everything in a transaction for atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create user
+      const user = await tx.user.create({
+        data: {
+          name: input.name,
+          email: input.email,
+          password: hashedPassword,
+          role: input.role,
+          referralCode,
+          referredById: referrer?.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          referralCode: true,
+          createdAt: true,
+        },
+      });
+
+      const threeMonthsLater = new Date();
+      threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+
+      // 2. If referral used, reward both parties
+      if (referrer) {
+        // Referrer gets 10,000 points (expires 3 months)
+        await tx.point.create({
+          data: {
+            userId: referrer.id,
+            amount: 10000,
+            expiresAt: threeMonthsLater,
+          },
+        });
+
+        // New user gets a discount coupon (expires 3 months)
+        await tx.coupon.create({
+          data: {
+            code: `REF-${generateReferralCode()}`,
+            discountAmount: 50000,
+            userId: user.id,
+            expiresAt: threeMonthsLater,
+          },
+        });
+      }
+
+      return user;
     });
 
-    const token = this.generateToken(user.id, user.email, user.role);
+    const token = this.generateToken(result.id, result.email, result.role);
 
-    return { user, token };
+    return { user: result, token };
   }
 
   async login(input: LoginInput) {
@@ -100,7 +131,32 @@ export class AuthService {
     });
     if (!user) throw new ApiError(404, "User not found");
 
-    return user;
+    // Get available points balance
+    const points = await prisma.point.findMany({
+      where: {
+        userId,
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    const totalPoints = points.reduce((sum, p) => sum + p.amount, 0);
+
+    // Get available coupons
+    const coupons = await prisma.coupon.findMany({
+      where: {
+        userId,
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        id: true,
+        code: true,
+        discountAmount: true,
+        expiresAt: true,
+      },
+    });
+
+    return { ...user, totalPoints, coupons };
   }
 
   private generateToken(userId: string, email: string, role: string): string {
