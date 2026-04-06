@@ -3,6 +3,9 @@ import cors from "cors";
 import { authRouter } from "./routes/auth.routes.js";
 import { eventRouter } from "./routes/event.routes.js";
 import { transactionRouter } from "./routes/transaction.routes.js";
+import { voucherRouter } from "./routes/voucher.routes.js";
+import { reviewRouter } from "./routes/review.routes.js";
+import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -18,7 +21,10 @@ app.get("/", (_req, res) => {
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/events", eventRouter);
+app.use("/api/events/:eventId/vouchers", voucherRouter);
 app.use("/api/transactions", transactionRouter);
+app.use("/api/reviews", reviewRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 // Global error handler (must be last)
 app.use(errorHandler);
