@@ -1,3 +1,4 @@
+// apps/platform/src/routes/events/$eventId.checkout.tsx
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -12,23 +13,16 @@ import {
   Shield,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { mockEvents } from "@/data/mock-events";
+import { fetchEventById, verifyVoucher, createTransaction } from "@/utils/api";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/events/$eventId/checkout")({
   component: CheckoutPage,
-  loader: ({ params }) => {
-    const event = mockEvents.find((e) => e.id === params.eventId);
-    if (!event) throw new Error("Event not found");
+  loader: async ({ params }) => {
+    const event = await fetchEventById(params.eventId);
     return { event };
   },
 });
-
-// Mock ticket types for this event
-const mockTicketTypes = [
-  { id: "t1", name: "Early Bird", price: 75000, availableSeats: 50, totalSeats: 100 },
-  { id: "t2", name: "Regular", price: 150000, availableSeats: 200, totalSeats: 300 },
-  { id: "t3", name: "VIP", price: 500000, availableSeats: 20, totalSeats: 30 },
-];
 
 function formatPrice(price: number): string {
   if (price === 0) return "Gratis";
@@ -40,8 +34,7 @@ function formatPrice(price: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("id-ID", {
+  return new Date(dateStr).toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -59,38 +52,97 @@ const categoryGradients: Record<string, string> = {
 };
 
 function CheckoutPage() {
+  const navigate = useNavigate();
+const [checkoutLoading, setCheckoutLoading] = useState(false);
+const [checkoutError, setCheckoutError] = useState("");
   const { event } = Route.useLoaderData();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [voucherCode, setVoucherCode] = useState("");
-  const [voucherApplied, setVoucherApplied] = useState(false);
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
+  const [voucherError, setVoucherError] = useState("");
+  const [voucherLoading, setVoucherLoading] = useState(false);
   const [step] = useState<"ticket" | "payment" | "done">("ticket");
 
-  const gradient = categoryGradients[event.category] ?? "from-[#328f97] to-[#1a5c62]";
+  const categoryKey = event.category.toLowerCase();
+  const gradient = categoryGradients[categoryKey] ?? "from-[#328f97] to-[#1a5c62]";
 
-  const updateQty = (ticketId: string, delta: number) => {
+  const updateQty = (ticketId: string, delta: number, maxSeats: number) => {
     setQuantities((prev) => {
       const current = prev[ticketId] || 0;
-      const next = Math.max(0, Math.min(10, current + delta));
+      const next = Math.max(0, Math.min(Math.min(10, maxSeats), current + delta));
       return { ...prev, [ticketId]: next };
     });
   };
 
   const subtotal = useMemo(() => {
-    return mockTicketTypes.reduce((sum, ticket) => {
+    return event.ticketTypes.reduce((sum, ticket) => {
       return sum + ticket.price * (quantities[ticket.id] || 0);
     }, 0);
-  }, [quantities]);
+  }, [quantities, event.ticketTypes]);
 
-  const discount = voucherApplied ? 50000 : 0;
-  const total = Math.max(0, subtotal - discount);
+  const total = Math.max(0, subtotal - voucherDiscount);
   const hasItems = Object.values(quantities).some((q) => q > 0);
 
-  const handleApplyVoucher = () => {
-    if (voucherCode.trim().length > 0) {
-      setVoucherApplied(true);
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherLoading(true);
+    setVoucherError("");
+    try {
+      const result = await verifyVoucher(event.id, voucherCode.trim());
+      setVoucherDiscount(result.discountAmount);
+    } catch (err) {
+      setVoucherDiscount(0);
+      setVoucherError("Voucher nggak valid atau udah expired");
+    } finally {
+      setVoucherLoading(false);
     }
   };
 
+  const handleCheckout = async () => {
+  // 1. Cek login dulu
+  const token = localStorage.getItem("token");
+  if (!token) {
+    navigate({ to: "/auth/login" });
+    return;
+  }
+
+  // 2. Build items array dari quantities
+  const items = Object.entries(quantities)
+    .filter(([, qty]) => qty > 0)
+    .map(([ticketTypeId, quantity]) => ({ ticketTypeId, quantity }));
+
+  if (items.length === 0) {
+    setCheckoutError("Pilih minimal 1 tiket");
+    return;
+  }
+
+  setCheckoutLoading(true);
+  setCheckoutError("");
+
+  try {
+    const transaction = await createTransaction({
+      eventId: event.id,
+      items,
+      voucherCode: voucherDiscount > 0 ? voucherCode : undefined,
+    });
+
+    // Redirect ke halaman payment
+    navigate({
+      to: "/transactions/$transactionId",
+      params: { transactionId: transaction.id },
+    });
+  } catch (err: any) {
+    // ky error — coba ambil message dari response body
+    try {
+      const body = await err.response?.json();
+      setCheckoutError(body?.message || "Gagal membuat transaksi");
+    } catch {
+      setCheckoutError("Gagal membuat transaksi. Coba lagi.");
+    }
+  } finally {
+    setCheckoutLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Stepper header */}
@@ -105,19 +157,12 @@ function CheckoutPage() {
             <span className="hidden sm:inline">Kembali</span>
           </Link>
 
-          {/* Step indicator */}
           <nav className="flex items-center gap-2 text-xs font-semibold sm:gap-3 sm:text-sm">
-            <span className={step === "ticket" ? "text-white" : "text-white/40"}>
-              Tiket
-            </span>
+            <span className={step === "ticket" ? "text-white" : "text-white/40"}>Tiket</span>
             <ChevronRight size={14} className="text-white/20" />
-            <span className={step === "payment" ? "text-white" : "text-white/40"}>
-              Pembayaran
-            </span>
+            <span className={step === "payment" ? "text-white" : "text-white/40"}>Pembayaran</span>
             <ChevronRight size={14} className="text-white/20" />
-            <span className={step === "done" ? "text-white" : "text-white/40"}>
-              Selesai
-            </span>
+            <span className={step === "done" ? "text-white" : "text-white/40"}>Selesai</span>
           </nav>
 
           <Link
@@ -133,19 +178,17 @@ function CheckoutPage() {
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         {/* Event info card */}
         <div className="rise-in flex items-center gap-4 rounded-2xl border border-white/8 bg-white/4 p-4">
-          <div
-            className={`h-16 w-16 shrink-0 rounded-xl bg-linear-to-br ${gradient} sm:h-20 sm:w-20`}
-          />
+          <div className={`h-16 w-16 shrink-0 rounded-xl bg-linear-to-br ${gradient} sm:h-20 sm:w-20`} />
           <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white sm:text-base">{event.title}</h1>
+            <h1 className="text-sm font-bold text-white sm:text-base">{event.name}</h1>
             <div className="mt-1 flex items-center gap-1.5 text-xs text-white/50 sm:text-sm">
               <CalendarDays size={13} className="shrink-0" />
-              <span>{formatDate(event.date)}</span>
+              <span>{formatDate(event.startDate)}</span>
             </div>
             <div className="mt-0.5 flex items-center gap-1.5 text-xs text-white/50 sm:text-sm">
               <MapPin size={13} className="shrink-0" />
               <span className="truncate">
-                {event.venue}, {event.city}
+                {event.venue}, {event.location}
               </span>
             </div>
           </div>
@@ -153,11 +196,15 @@ function CheckoutPage() {
 
         {/* Ticket types */}
         <section className="rise-in mt-6 space-y-3 sm:mt-8" style={{ animationDelay: "60ms" }}>
-          <h2 className="text-sm font-bold text-white/70 uppercase tracking-wider">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">
             Pilih Tiket
           </h2>
 
-          {mockTicketTypes.map((ticket) => {
+          {event.ticketTypes.length === 0 && (
+            <p className="text-sm text-white/50">Belum ada tiket tersedia untuk event ini.</p>
+          )}
+
+          {event.ticketTypes.map((ticket) => {
             const qty = quantities[ticket.id] || 0;
             const isSoldOut = ticket.availableSeats === 0;
 
@@ -176,27 +223,22 @@ function CheckoutPage() {
                       <Ticket size={18} className="text-white/50" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white sm:text-base">
-                        {ticket.name}
-                      </p>
+                      <p className="text-sm font-bold text-white sm:text-base">{ticket.name}</p>
                       <p className="mt-0.5 text-base font-bold text-white sm:text-lg">
                         {formatPrice(ticket.price)}
                       </p>
                       <p className="mt-1 text-xs text-white/40">
-                        {isSoldOut
-                          ? "Habis terjual"
-                          : `${ticket.availableSeats} tersisa`}
+                        {isSoldOut ? "Habis terjual" : `${ticket.availableSeats} tersisa`}
                       </p>
                     </div>
                   </div>
 
-                  {/* Quantity control */}
                   {!isSoldOut && (
                     <div className="flex items-center gap-0">
                       <button
-                        onClick={() => updateQty(ticket.id, -1)}
+                        onClick={() => updateQty(ticket.id, -1, ticket.availableSeats)}
                         disabled={qty === 0}
-                        className="flex h-9 w-9 items-center justify-center rounded-l-xl border border-white/15 bg-white/5 text-white/60 transition-colors hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="flex h-9 w-9 items-center justify-center rounded-l-xl border border-white/15 bg-white/5 text-white/60 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Minus size={16} />
                       </button>
@@ -204,9 +246,9 @@ function CheckoutPage() {
                         {qty}
                       </span>
                       <button
-                        onClick={() => updateQty(ticket.id, 1)}
-                        disabled={qty >= 10}
-                        className="flex h-9 w-9 items-center justify-center rounded-r-xl border border-white/15 bg-white/5 text-white/60 transition-colors hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        onClick={() => updateQty(ticket.id, 1, ticket.availableSeats)}
+                        disabled={qty >= Math.min(10, ticket.availableSeats)}
+                        className="flex h-9 w-9 items-center justify-center rounded-r-xl border border-white/15 bg-white/5 text-white/60 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Plus size={16} />
                       </button>
@@ -218,12 +260,9 @@ function CheckoutPage() {
           })}
         </section>
 
-        {/* Voucher / Promo code */}
-        <section
-          className="rise-in mt-6 sm:mt-8"
-          style={{ animationDelay: "120ms" }}
-        >
-          <h2 className="text-sm font-bold text-white/70 uppercase tracking-wider">
+        {/* Voucher */}
+        <section className="rise-in mt-6 sm:mt-8" style={{ animationDelay: "120ms" }}>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">
             Punya kode promo?
           </h2>
           <div className="mt-3 flex gap-2">
@@ -235,23 +274,27 @@ function CheckoutPage() {
                 value={voucherCode}
                 onChange={(e) => {
                   setVoucherCode(e.target.value.toUpperCase());
-                  setVoucherApplied(false);
+                  setVoucherDiscount(0);
+                  setVoucherError("");
                 }}
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/30 font-[inherit]"
+                className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/30"
               />
             </div>
             <button
               onClick={handleApplyVoucher}
-              disabled={!voucherCode.trim()}
-              className="shrink-0 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed"
+              disabled={!voucherCode.trim() || voucherLoading}
+              className="shrink-0 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              Pakai
+              {voucherLoading ? "..." : "Pakai"}
             </button>
           </div>
-          {voucherApplied && (
+          {voucherDiscount > 0 && (
             <p className="mt-2 text-xs font-semibold text-emerald-400">
-              Voucher "{voucherCode}" berhasil! Diskon {formatPrice(discount)}
+              Voucher "{voucherCode}" berhasil! Diskon {formatPrice(voucherDiscount)}
             </p>
+          )}
+          {voucherError && (
+            <p className="mt-2 text-xs font-semibold text-red-400">{voucherError}</p>
           )}
         </section>
 
@@ -261,11 +304,9 @@ function CheckoutPage() {
             className="rise-in mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-4 sm:mt-8 sm:p-5"
             style={{ animationDelay: "180ms" }}
           >
-            <h2 className="text-sm font-bold text-white/70 uppercase tracking-wider">
-              Ringkasan
-            </h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">Ringkasan</h2>
             <div className="mt-3 space-y-2 text-sm">
-              {mockTicketTypes.map((ticket) => {
+              {event.ticketTypes.map((ticket) => {
                 const qty = quantities[ticket.id] || 0;
                 if (qty === 0) return null;
                 return (
@@ -278,10 +319,10 @@ function CheckoutPage() {
                 );
               })}
 
-              {voucherApplied && discount > 0 && (
+              {voucherDiscount > 0 && (
                 <div className="flex justify-between text-emerald-400">
                   <span>Diskon voucher</span>
-                  <span>-{formatPrice(discount)}</span>
+                  <span>-{formatPrice(voucherDiscount)}</span>
                 </div>
               )}
 
@@ -302,38 +343,45 @@ function CheckoutPage() {
         >
           <Shield size={16} className="mt-0.5 shrink-0 text-white/25" />
           <p>
-            Dengan melanjutkan pembelian, kamu menyetujui{" "}
-            <span className="text-white/50 underline underline-offset-2 cursor-pointer">
-              Syarat & Ketentuan
-            </span>{" "}
-            dan{" "}
-            <span className="text-white/50 underline underline-offset-2 cursor-pointer">
-              Kebijakan Privasi
-            </span>{" "}
+            Dengan melanjutkan pembelian, kamu menyetujui Syarat & Ketentuan dan Kebijakan Privasi
             Eventura. Tiket tidak dapat dipindahtangankan.
           </p>
         </div>
 
-        {/* Bottom spacer for sticky CTA */}
         <div className="h-28" />
       </main>
 
-      {/* Sticky checkout button */}
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/8 bg-[#0a0a0a]/95 p-4 backdrop-blur-xl">
-        <div className="mx-auto max-w-3xl">
-          <button
-            disabled={!hasItems}
-            className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold transition-all ${
-              hasItems
-                ? "bg-[#f5c518] text-[#0a0a0a] hover:bg-[#e6b800] active:scale-[0.98]"
-                : "bg-white/10 text-white/30 cursor-not-allowed"
-            }`}
-          >
-            <Ticket size={20} />
-            {hasItems ? `CHECKOUT — ${formatPrice(total)}` : "Pilih tiket dulu"}
-          </button>
-        </div>
-      </div>
+     {/* Sticky checkout button */}
+<div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/8 bg-[#0a0a0a]/95 p-4 backdrop-blur-xl">
+  <div className="mx-auto max-w-3xl">
+    {checkoutError && (
+      <p className="mb-3 text-center text-xs font-semibold text-red-400">
+        {checkoutError}
+      </p>
+    )}
+    <button
+      onClick={handleCheckout}
+      disabled={!hasItems || checkoutLoading}
+      className={`flex w-full items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold transition-all ${
+        hasItems && !checkoutLoading
+          ? "bg-[#f5c518] text-[#0a0a0a] hover:bg-[#e6b800] active:scale-[0.98]"
+          : "cursor-not-allowed bg-white/10 text-white/30"
+      }`}
+    >
+      {checkoutLoading ? (
+        <>
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0a0a0a]/20 border-t-[#0a0a0a]" />
+          Memproses...
+        </>
+      ) : (
+        <>
+          <Ticket size={20} />
+          {hasItems ? `CHECKOUT — ${formatPrice(total)}` : "Pilih tiket dulu"}
+        </>
+      )}
+    </button>
+  </div>
+</div>
     </div>
   );
 }

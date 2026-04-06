@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
 import { BrowseFilters } from "@/components/events/BrowseFilters";
 import { BrowseCategories } from "@/components/events/BrowseCategories";
 import { BrowsePromo } from "@/components/events/BrowsePromo";
 import { BrowseEventCard } from "@/components/events/BrowseEventCard";
-import { mockEvents } from "@/data/mock-events";
+import { fetchEvents, type ApiEvent } from "@/utils/api";
 import type { EventCategory } from "@/types/event";
 
 export const Route = createFileRoute("/events/")({
@@ -18,21 +18,45 @@ function EventsPage() {
   const [activePrice, setActivePrice] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<EventCategory | null>(null);
 
-  const filteredEvents = useMemo(() => {
-    return mockEvents.filter((event) => {
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        const match =
-          event.title.toLowerCase().includes(q) ||
-          event.venue.toLowerCase().includes(q) ||
-          event.city.toLowerCase().includes(q);
-        if (!match) return false;
-      }
-      if (activeCategory && event.category !== activeCategory) return false;
-      if (activePrice === "Free" && event.price !== 0) return false;
-      if (activePrice === "Paid" && event.price === 0) return false;
-      return true;
-    });
+  const [events, setEvents] = useState<ApiEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    const timer = setTimeout(() => {
+      fetchEvents({
+        search: search.trim() || undefined,
+        category: activeCategory || undefined,
+        isFree:
+          activePrice === "Free"
+            ? true
+            : activePrice === "Paid"
+            ? false
+            : undefined,
+        limit: 20,
+      })
+        .then((data) => {
+          if (!cancelled) {
+            setEvents(data.events);
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          if (!cancelled) setError("Gagal memuat events. Cek koneksi ke server.");
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 300); // debounce 300ms
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [search, activeCategory, activePrice]);
 
   return (
@@ -66,9 +90,25 @@ function EventsPage() {
             Popular Events
           </h2>
 
-          {filteredEvents.length > 0 ? (
+          {loading ? (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-              {filteredEvents.map((event, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square animate-pulse rounded-xl border border-white/8 bg-white/4"
+                />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="mt-10 rounded-2xl border border-red-500/20 bg-red-500/5 py-14 text-center">
+              <p className="text-lg font-semibold text-red-400">{error}</p>
+              <p className="mt-2 text-sm text-white/40">
+                Pastikan backend jalan di http://localhost:8000
+              </p>
+            </div>
+          ) : events.length > 0 ? (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {events.map((event, i) => (
                 <div key={event.id} className="rise-in" style={{ animationDelay: `${i * 50}ms` }}>
                   <BrowseEventCard event={event} />
                 </div>
@@ -77,7 +117,9 @@ function EventsPage() {
           ) : (
             <div className="mt-10 rounded-2xl border border-white/8 bg-white/4 py-14 text-center sm:mt-12 sm:py-16">
               <p className="text-lg font-semibold text-white">No events found</p>
-              <p className="mt-2 text-sm text-white/40">Try adjusting your filters or search query.</p>
+              <p className="mt-2 text-sm text-white/40">
+                Try adjusting your filters or search query.
+              </p>
             </div>
           )}
         </section>
