@@ -310,6 +310,21 @@ export class TransactionService {
     return await prisma.transaction.update({
       where: { id: transactionId },
       data: { status: "DONE" },
+      include: {
+        items: { include: { ticketType: true } },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            venue: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+        voucher: { select: { id: true, code: true, discountAmount: true } },
+        coupon: { select: { id: true, code: true, discountAmount: true } },
+      },
     });
   }
 
@@ -402,6 +417,21 @@ export class TransactionService {
       return await tx.transaction.update({
         where: { id: transactionId },
         data: { status: newStatus },
+        include: {
+          items: { include: { ticketType: true } },
+          event: {
+            select: {
+              id: true,
+              name: true,
+              venue: true,
+              location: true,
+              startDate: true,
+              endDate: true,
+            },
+          },
+          voucher: { select: { id: true, code: true, discountAmount: true } },
+          coupon: { select: { id: true, code: true, discountAmount: true } },
+        },
       });
     });
   }
