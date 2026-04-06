@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
+import { Route as TransactionsTransactionIdRouteImport } from './routes/transactions/$transactionId'
 import { Route as OrganizerOrganizeIdRouteImport } from './routes/organizer/$organizeId'
 import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
@@ -34,6 +35,12 @@ const EventsIndexRoute = EventsIndexRouteImport.update({
   path: '/events/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TransactionsTransactionIdRoute =
+  TransactionsTransactionIdRouteImport.update({
+    id: '/transactions/$transactionId',
+    path: '/transactions/$transactionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const OrganizerOrganizeIdRoute = OrganizerOrganizeIdRouteImport.update({
   id: '/organizer/$organizeId',
   path: '/organizer/$organizeId',
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/events/$eventId': typeof EventsEventIdRouteWithChildren
   '/organizer/$organizeId': typeof OrganizerOrganizeIdRoute
+  '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/events/': typeof EventsIndexRoute
   '/events/$eventId/checkout': typeof EventsEventIdCheckoutRoute
   '/events/$eventId/': typeof EventsEventIdIndexRoute
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/organizer/$organizeId': typeof OrganizerOrganizeIdRoute
+  '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/events': typeof EventsIndexRoute
   '/events/$eventId/checkout': typeof EventsEventIdCheckoutRoute
   '/events/$eventId': typeof EventsEventIdIndexRoute
@@ -94,6 +103,7 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/events/$eventId': typeof EventsEventIdRouteWithChildren
   '/organizer/$organizeId': typeof OrganizerOrganizeIdRoute
+  '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/events/': typeof EventsIndexRoute
   '/events/$eventId/checkout': typeof EventsEventIdCheckoutRoute
   '/events/$eventId/': typeof EventsEventIdIndexRoute
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/events/$eventId'
     | '/organizer/$organizeId'
+    | '/transactions/$transactionId'
     | '/events/'
     | '/events/$eventId/checkout'
     | '/events/$eventId/'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/organizer/$organizeId'
+    | '/transactions/$transactionId'
     | '/events'
     | '/events/$eventId/checkout'
     | '/events/$eventId'
@@ -128,6 +140,7 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/events/$eventId'
     | '/organizer/$organizeId'
+    | '/transactions/$transactionId'
     | '/events/'
     | '/events/$eventId/checkout'
     | '/events/$eventId/'
@@ -140,6 +153,7 @@ export interface RootRouteChildren {
   AuthRegisterRoute: typeof AuthRegisterRoute
   EventsEventIdRoute: typeof EventsEventIdRouteWithChildren
   OrganizerOrganizeIdRoute: typeof OrganizerOrganizeIdRoute
+  TransactionsTransactionIdRoute: typeof TransactionsTransactionIdRoute
   EventsIndexRoute: typeof EventsIndexRoute
 }
 
@@ -164,6 +178,13 @@ declare module '@tanstack/react-router' {
       path: '/events'
       fullPath: '/events/'
       preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transactions/$transactionId': {
+      id: '/transactions/$transactionId'
+      path: '/transactions/$transactionId'
+      fullPath: '/transactions/$transactionId'
+      preLoaderRoute: typeof TransactionsTransactionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/organizer/$organizeId': {
@@ -232,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRegisterRoute: AuthRegisterRoute,
   EventsEventIdRoute: EventsEventIdRouteWithChildren,
   OrganizerOrganizeIdRoute: OrganizerOrganizeIdRoute,
+  TransactionsTransactionIdRoute: TransactionsTransactionIdRoute,
   EventsIndexRoute: EventsIndexRoute,
 }
 export const routeTree = rootRouteImport

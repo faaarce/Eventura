@@ -45,11 +45,18 @@ export class TransactionService {
 
       let totalPrice = 0;
       for (const item of input.items) {
-        const ticketType = event.ticketTypes.find((t) => t.id === item.ticketTypeId);
-        if (!ticketType) throw new ApiError(404, `Ticket type ${item.ticketTypeId} not found`);
-        if (item.quantity < 1) throw new ApiError(400, "Quantity must be at least 1");
+        const ticketType = event.ticketTypes.find(
+          (t) => t.id === item.ticketTypeId,
+        );
+        if (!ticketType)
+          throw new ApiError(404, `Ticket type ${item.ticketTypeId} not found`);
+        if (item.quantity < 1)
+          throw new ApiError(400, "Quantity must be at least 1");
         if (ticketType.availableSeats < item.quantity) {
-          throw new ApiError(400, `Not enough seats for ${ticketType.name}. Available: ${ticketType.availableSeats}`);
+          throw new ApiError(
+            400,
+            `Not enough seats for ${ticketType.name}. Available: ${ticketType.availableSeats}`,
+          );
         }
         totalPrice += ticketType.price * item.quantity;
       }
@@ -113,7 +120,10 @@ export class TransactionService {
           orderBy: { expiresAt: "asc" },
         });
 
-        const remaining = Math.max(0, totalPrice - voucherDiscount - couponDiscount);
+        const remaining = Math.max(
+          0,
+          totalPrice - voucherDiscount - couponDiscount,
+        );
         for (const point of activePoints) {
           if (pointsUsed >= remaining) break;
           const useAmount = Math.min(point.amount, remaining - pointsUsed);
@@ -126,7 +136,10 @@ export class TransactionService {
       }
 
       // 6. Calculate final price (min 0)
-      const finalPrice = Math.max(0, totalPrice - voucherDiscount - couponDiscount - pointsUsed);
+      const finalPrice = Math.max(
+        0,
+        totalPrice - voucherDiscount - couponDiscount - pointsUsed,
+      );
 
       // 7. Deduct seats
       for (const item of input.items) {
@@ -154,7 +167,9 @@ export class TransactionService {
             create: input.items.map((item) => ({
               ticketTypeId: item.ticketTypeId,
               quantity: item.quantity,
-              pricePerUnit: event.ticketTypes.find((t) => t.id === item.ticketTypeId)!.price,
+              pricePerUnit: event.ticketTypes.find(
+                (t) => t.id === item.ticketTypeId,
+              )!.price,
             })),
           },
         },
@@ -187,7 +202,9 @@ export class TransactionService {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          event: { select: { id: true, name: true, venue: true, startDate: true } },
+          event: {
+            select: { id: true, name: true, venue: true, startDate: true },
+          },
           items: { include: { ticketType: { select: { name: true } } } },
         },
       }),
@@ -204,7 +221,16 @@ export class TransactionService {
     const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
-        event: { select: { id: true, name: true, venue: true, location: true, startDate: true, endDate: true } },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            venue: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
         items: { include: { ticketType: true } },
         voucher: { select: { id: true, code: true, discountAmount: true } },
         coupon: { select: { id: true, code: true, discountAmount: true } },
@@ -215,7 +241,9 @@ export class TransactionService {
     if (!transaction) throw new ApiError(404, "Transaction not found");
     if (transaction.userId !== userId) {
       // Allow organizer to view transactions for their events
-      const event = await prisma.event.findUnique({ where: { id: transaction.eventId } });
+      const event = await prisma.event.findUnique({
+        where: { id: transaction.eventId },
+      });
       if (!event || event.organizerId !== userId) {
         throw new ApiError(403, "Not authorized to view this transaction");
       }
@@ -224,10 +252,17 @@ export class TransactionService {
     return transaction;
   }
 
-  async uploadPaymentProof(transactionId: string, userId: string, paymentProofUrl: string) {
-    const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  async uploadPaymentProof(
+    transactionId: string,
+    userId: string,
+    paymentProofUrl: string,
+  ) {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
     if (!transaction) throw new ApiError(404, "Transaction not found");
-    if (transaction.userId !== userId) throw new ApiError(403, "Not your transaction");
+    if (transaction.userId !== userId)
+      throw new ApiError(403, "Not your transaction");
     if (transaction.status !== "WAITING_FOR_PAYMENT") {
       throw new ApiError(400, "Transaction is not waiting for payment");
     }
@@ -240,6 +275,21 @@ export class TransactionService {
       data: {
         paymentProof: paymentProofUrl,
         status: "WAITING_FOR_CONFIRMATION",
+      },
+      include: {
+        items: { include: { ticketType: true } },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            venue: true,
+            location: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+        voucher: { select: { id: true, code: true, discountAmount: true } },
+        coupon: { select: { id: true, code: true, discountAmount: true } },
       },
     });
   }
@@ -280,17 +330,26 @@ export class TransactionService {
   }
 
   async cancelTransaction(transactionId: string, userId: string) {
-    const transaction = await prisma.transaction.findUnique({ where: { id: transactionId } });
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
     if (!transaction) throw new ApiError(404, "Transaction not found");
-    if (transaction.userId !== userId) throw new ApiError(403, "Not your transaction");
+    if (transaction.userId !== userId)
+      throw new ApiError(403, "Not your transaction");
     if (transaction.status !== "WAITING_FOR_PAYMENT") {
-      throw new ApiError(400, "Can only cancel transactions waiting for payment");
+      throw new ApiError(
+        400,
+        "Can only cancel transactions waiting for payment",
+      );
     }
 
     return await this.rollbackTransaction(transactionId, "CANCELED");
   }
 
-  async rollbackTransaction(transactionId: string, newStatus: "REJECTED" | "EXPIRED" | "CANCELED") {
+  async rollbackTransaction(
+    transactionId: string,
+    newStatus: "REJECTED" | "EXPIRED" | "CANCELED",
+  ) {
     return await prisma.$transaction(async (tx) => {
       const trx = await tx.transaction.findUniqueOrThrow({
         where: { id: transactionId },

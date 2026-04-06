@@ -48,7 +48,7 @@ function formatDate(dateStr: string): string {
 // Countdown timer hook
 function useCountdown(deadline: string) {
   const [remaining, setRemaining] = useState(() =>
-    Math.max(0, new Date(deadline).getTime() - Date.now())
+    Math.max(0, new Date(deadline).getTime() - Date.now()),
   );
 
   useEffect(() => {
@@ -65,7 +65,7 @@ function useCountdown(deadline: string) {
   return { remaining, hours, minutes, seconds, expired: remaining === 0 };
 }
 
-const statusConfig: Record
+const statusConfig: Record<
   TransactionStatus,
   { label: string; color: string; bg: string; border: string }
 > = {
@@ -143,7 +143,9 @@ function TransactionDetailPage() {
   };
 
   const handleCancel = async () => {
-    if (!confirm("Yakin mau batalin transaksi ini? Tiket bakal dikembalikan.")) {
+    if (
+      !confirm("Yakin mau batalin transaksi ini? Tiket bakal dikembalikan.")
+    ) {
       return;
     }
     setCanceling(true);
@@ -219,13 +221,14 @@ function TransactionDetailPage() {
               )}
               {trx.status === "WAITING_FOR_PAYMENT" && countdown.expired && (
                 <p className="mt-1 text-sm text-white/60">
-                  Deadline pembayaran udah lewat. Transaksi akan otomatis expired.
+                  Deadline pembayaran udah lewat. Transaksi akan otomatis
+                  expired.
                 </p>
               )}
               {trx.status === "WAITING_FOR_CONFIRMATION" && (
                 <p className="mt-1 text-sm text-white/60">
-                  Bukti pembayaran udah dikirim. Tunggu konfirmasi dari organizer
-                  (maks 3 hari).
+                  Bukti pembayaran udah dikirim. Tunggu konfirmasi dari
+                  organizer (maks 3 hari).
                 </p>
               )}
               {trx.status === "DONE" && (
@@ -242,7 +245,9 @@ function TransactionDetailPage() {
           <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">
             Event
           </h2>
-          <h3 className="mt-2 text-lg font-bold text-white">{trx.event.name}</h3>
+          <h3 className="mt-2 text-lg font-bold text-white">
+            {trx.event.name}
+          </h3>
           <div className="mt-3 space-y-1.5 text-sm text-white/60">
             <div className="flex items-center gap-2">
               <CalendarDays size={14} />
@@ -338,7 +343,9 @@ function TransactionDetailPage() {
                 className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
               />
               {error && (
-                <p className="mt-2 text-xs font-semibold text-red-400">{error}</p>
+                <p className="mt-2 text-xs font-semibold text-red-400">
+                  {error}
+                </p>
               )}
             </div>
 
@@ -371,13 +378,12 @@ function TransactionDetailPage() {
           </section>
         )}
 
-        {/* Show uploaded proof */}
         {trx.paymentProof && (
           <section className="rise-in mt-6 rounded-2xl border border-white/8 bg-white/4 p-5 sm:p-6">
             <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">
               Bukti Pembayaran
             </h2>
-            
+            <a
               href={trx.paymentProof}
               target="_blank"
               rel="noopener noreferrer"
