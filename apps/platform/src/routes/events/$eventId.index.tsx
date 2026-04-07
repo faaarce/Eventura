@@ -1,5 +1,5 @@
-
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { EventReviews } from "@/components/events/EventReviews";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -84,17 +84,18 @@ function EventDetailPage() {
   const [liked, setLiked] = useState(false);
 
   const categoryKey = event.category.toLowerCase();
-  const gradient = categoryGradients[categoryKey] ?? "from-[#328f97] to-[#1a5c62]";
+  const gradient =
+    categoryGradients[categoryKey] ?? "from-[#328f97] to-[#1a5c62]";
 
   const minPrice = event.isFree
     ? 0
     : event.ticketTypes.length > 0
-    ? Math.min(...event.ticketTypes.map((t) => t.price))
-    : 0;
+      ? Math.min(...event.ticketTypes.map((t) => t.price))
+      : 0;
 
   const totalAvailable = event.ticketTypes.reduce(
     (sum, t) => sum + t.availableSeats,
-    0
+    0,
   );
 
   return (
@@ -139,13 +140,19 @@ function EventDetailPage() {
             </div>
           </div>
 
-          <div className="rise-in flex flex-1 flex-col" style={{ animationDelay: "80ms" }}>
+          <div
+            className="rise-in flex flex-1 flex-col"
+            style={{ animationDelay: "80ms" }}
+          >
             <h1 className="display-title text-2xl font-bold leading-tight text-white sm:text-3xl lg:text-4xl">
               {event.name}
             </h1>
 
             <p className="mt-2 text-sm text-white/50">
-              by <span className="font-semibold text-white/80">{event.organizer.name}</span>
+              by{" "}
+              <span className="font-semibold text-white/80">
+                {event.organizer.name}
+              </span>
             </p>
 
             <div className="mt-5 flex flex-col gap-3 sm:mt-6">
@@ -202,7 +209,9 @@ function EventDetailPage() {
             <div className="my-6 border-t border-white/8 sm:my-8" />
 
             <div>
-              <h2 className="text-base font-bold text-white sm:text-lg">About this event</h2>
+              <h2 className="text-base font-bold text-white sm:text-lg">
+                About this event
+              </h2>
               <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/50">
                 {event.description}
               </p>
@@ -212,7 +221,9 @@ function EventDetailPage() {
 
             {/* Ticket types preview */}
             <div>
-              <h2 className="text-base font-bold text-white sm:text-lg">Ticket types</h2>
+              <h2 className="text-base font-bold text-white sm:text-lg">
+                Ticket types
+              </h2>
               <div className="mt-3 space-y-2">
                 {event.ticketTypes.map((ticket) => (
                   <div
@@ -220,7 +231,9 @@ function EventDetailPage() {
                     className="flex items-center justify-between rounded-xl border border-white/8 bg-white/4 p-4"
                   >
                     <div>
-                      <p className="text-sm font-bold text-white">{ticket.name}</p>
+                      <p className="text-sm font-bold text-white">
+                        {ticket.name}
+                      </p>
                       <p className="mt-0.5 text-xs text-white/40">
                         {ticket.availableSeats} / {ticket.totalSeats} tersisa
                       </p>
@@ -236,14 +249,18 @@ function EventDetailPage() {
             <div className="my-6 border-t border-white/8 sm:my-8" />
 
             <div>
-              <h2 className="text-base font-bold text-white sm:text-lg">Venue</h2>
+              <h2 className="text-base font-bold text-white sm:text-lg">
+                Venue
+              </h2>
               <button className="mt-3 flex w-full items-center justify-between rounded-xl border border-white/8 bg-white/4 p-4 text-left transition-all hover:bg-white/8">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/8">
                     <MapPin size={18} className="text-white/50" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">{event.venue}</p>
+                    <p className="text-sm font-semibold text-white">
+                      {event.venue}
+                    </p>
                     <p className="mt-0.5 text-xs text-white/40">
                       {event.location}, Indonesia
                     </p>
@@ -256,18 +273,28 @@ function EventDetailPage() {
             <div className="my-6 border-t border-white/8 sm:my-8" />
 
             <div>
-              <h2 className="text-base font-bold text-white sm:text-lg">Important info</h2>
+              <h2 className="text-base font-bold text-white sm:text-lg">
+                Important info
+              </h2>
               <div className="mt-3 flex flex-col gap-2.5">
                 <div className="flex items-start gap-3 text-sm text-white/50">
                   <Info size={16} className="mt-0.5 shrink-0 text-white/30" />
-                  <span>Tickets are non-transferable. Name on ticket must match ID.</span>
+                  <span>
+                    Tickets are non-transferable. Name on ticket must match ID.
+                  </span>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-white/50">
                   <Info size={16} className="mt-0.5 shrink-0 text-white/30" />
-                  <span>No refunds unless the event is cancelled by the organizer.</span>
+                  <span>
+                    No refunds unless the event is cancelled by the organizer.
+                  </span>
                 </div>
               </div>
             </div>
+
+            <div className="my-6 border-t border-white/8 sm:my-8" />
+
+            <EventReviews eventId={event.id} eventEndDate={event.endDate} />
           </div>
         </div>
       </main>
@@ -278,10 +305,15 @@ function EventDetailPage() {
             <button
               onClick={() => setLiked(!liked)}
               className={`flex h-12 w-12 items-center justify-center rounded-xl border transition-all ${
-                liked ? "border-white/30 bg-white/10" : "border-white/12 bg-white/4"
+                liked
+                  ? "border-white/30 bg-white/10"
+                  : "border-white/12 bg-white/4"
               }`}
             >
-              <Heart size={18} className={liked ? "fill-white text-white" : "text-white/60"} />
+              <Heart
+                size={18}
+                className={liked ? "fill-white text-white" : "text-white/60"}
+              />
             </button>
             <button className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/12 bg-white/4">
               <Share2 size={18} className="text-white/60" />

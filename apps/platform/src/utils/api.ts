@@ -254,3 +254,56 @@ export async function fetchMyTransactions(
     .json<ApiResponse<TransactionListData>>();
   return res.data;
 }
+// ============ Review types ============
+
+export interface ApiReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    profileImage: string | null;
+  };
+}
+
+interface ReviewListData {
+  reviews: ApiReview[];
+  summary: {
+    averageRating: number;
+    totalReviews: number;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ============ Review helpers ============
+
+export async function fetchEventReviews(
+  eventId: string,
+  params: { page?: number; limit?: number } = {}
+): Promise<ReviewListData> {
+  const searchParams: Record<string, string> = {};
+  if (params.page) searchParams.page = String(params.page);
+  if (params.limit) searchParams.limit = String(params.limit);
+
+  const res = await api
+    .get(`reviews/events/${eventId}`, { searchParams })
+    .json<ApiResponse<ReviewListData>>();
+  return res.data;
+}
+
+export async function createReview(
+  eventId: string,
+  input: { rating: number; comment?: string }
+): Promise<ApiReview> {
+  const res = await api
+    .post(`reviews/events/${eventId}`, { json: input })
+    .json<ApiResponse<ApiReview>>();
+  return res.data;
+}
