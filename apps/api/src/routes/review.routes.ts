@@ -1,30 +1,11 @@
 import { Router } from "express";
-import { ReviewController } from "../controllers/review.controller.js";
+import { create, listByEvent, getOrganizerReviews } from "../controllers/review.controller.js";
 import { authenticate, authorize } from "../middleware/auth.middleware.js";
 
 const router = Router();
-const controller = new ReviewController();
 
-// Organizer: get own review summary
-router.get(
-  "/organizer",
-  authenticate,
-  authorize("ORGANIZER"),
-  controller.getOrganizerReviews
-);
-
-// Customer: create review for event
-router.post(
-  "/events/:eventId",
-  authenticate,
-  authorize("CUSTOMER"),
-  controller.create
-);
-
-// Public: list reviews for event
-router.get(
-  "/events/:eventId",
-  controller.listByEvent
-);
+router.get("/organizer", authenticate, authorize("ORGANIZER"), getOrganizerReviews);
+router.post("/events/:eventId", authenticate, authorize("CUSTOMER"), create);
+router.get("/events/:eventId", listByEvent);
 
 export { router as reviewRouter };
