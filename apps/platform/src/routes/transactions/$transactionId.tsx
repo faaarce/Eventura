@@ -21,10 +21,16 @@ import {
 
 export const Route = createFileRoute("/transactions/$transactionId")({
   component: TransactionDetailPage,
+  ssr: false,
   loader: async ({ params }) => {
     const transaction = await fetchTransactionById(params.transactionId);
     return { transaction };
   },
+  pendingComponent: () => (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+    </div>
+  ),
 });
 
 function formatPrice(price: number): string {

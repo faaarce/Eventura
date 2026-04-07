@@ -1,12 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import {
-  Sparkles,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-} from "lucide-react";
+import Cookies from "js-cookie";
+
+import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/auth/login")({
@@ -48,8 +43,8 @@ function LoginPage() {
       }
 
       // Save token & redirect
-      localStorage.setItem("token", data.data.token);
-      localStorage.setItem("user", JSON.stringify(data.data.user));
+      Cookies.set("token", data.data.token, { expires: 1 });
+
       navigate({ to: "/events" });
     } catch {
       setError("Tidak bisa terhubung ke server");

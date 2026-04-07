@@ -1,5 +1,9 @@
-
-import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  redirect,
+} from "@tanstack/react-router";
 import { useState } from "react";
 import {
   User,
@@ -27,11 +31,13 @@ import {
 } from "@/utils/api";
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
+import Cookies from "js-cookie";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
+  ssr: false,
   beforeLoad: () => {
-    if (typeof window !== "undefined" && !localStorage.getItem("token")) {
+    if (typeof window !== "undefined" && !Cookies.get("token")) {
       throw redirect({ to: "/auth/login" });
     }
   },
@@ -42,6 +48,11 @@ export const Route = createFileRoute("/profile")({
     ]);
     return { profile, transactions: transactionsData.transactions };
   },
+  pendingComponent: () => (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+    </div>
+  ),
   errorComponent: ({ error }) => (
     <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
       <div className="text-center">
@@ -84,7 +95,7 @@ function formatDate(dateStr: string, withTime = false): string {
   });
 }
 
-const statusConfig: Record
+const statusConfig: Record<
   TransactionStatus,
   { label: string; color: string; bg: string; icon: typeof Clock }
 > = {
@@ -128,11 +139,12 @@ const statusConfig: Record
 
 function ProfilePage() {
   const { profile, transactions } = Route.useLoaderData();
+
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">(
-    "ALL"
+    "ALL",
   );
 
   const handleCopyReferral = async () => {
@@ -144,11 +156,10 @@ function ProfilePage() {
       // fallback: nothing
     }
   };
-
+  
   const handleLogout = () => {
     if (!confirm("Yakin mau logout?")) return;
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    Cookies.remove("token");
     navigate({ to: "/auth/login" });
   };
 
@@ -245,8 +256,8 @@ function ProfilePage() {
             Referral Code
           </div>
           <p className="mt-2 text-sm text-white/50">
-            Bagikan kode ini ke teman. Kamu dapat 10.000 points, teman kamu dapat
-            kupon diskon Rp 50.000.
+            Bagikan kode ini ke teman. Kamu dapat 10.000 points, teman kamu
+            dapat kupon diskon Rp 50.000.
           </p>
 
           <div className="mt-4 flex items-stretch gap-2">
@@ -342,7 +353,9 @@ function ProfilePage() {
             ).map(([key, label]) => (
               <button
                 key={key}
-                onClick={() => setStatusFilter(key as TransactionStatus | "ALL")}
+                onClick={() =>
+                  setStatusFilter(key as TransactionStatus | "ALL")
+                }
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   statusFilter === key
                     ? "border-white/30 bg-white text-[#0a0a0a]"
@@ -388,13 +401,22 @@ function ProfilePage() {
         <div className="page-wrap flex flex-col items-center gap-4 py-6 text-sm text-white/30 sm:flex-row sm:justify-between sm:py-8">
           <p>© 2026 Eventura</p>
           <div className="flex gap-6">
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Privacy
             </a>
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Terms
             </a>
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Help
             </a>
           </div>

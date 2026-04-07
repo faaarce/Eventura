@@ -1,18 +1,19 @@
-
 import ky from "ky";
+import Cookies from "js-cookie";
 
 export const api = ky.create({
   prefixUrl: "http://localhost:8000/api",
   hooks: {
     beforeRequest: [
       (request) => {
-        const token = localStorage.getItem("token");
-        if (token) request.headers.set("Authorization", `Bearer ${token}`);
+        if (typeof window !== "undefined") {
+          const token = Cookies.get("token");
+          if (token) request.headers.set("Authorization", `Bearer ${token}`);
+        }
       },
     ],
   },
 });
-
 
 export interface ApiTicketType {
   id: string;
@@ -65,7 +66,7 @@ export async function fetchEvents(
     isFree?: boolean;
     page?: number;
     limit?: number;
-  } = {}
+  } = {},
 ): Promise<EventListData> {
   const searchParams: Record<string, string> = {};
   if (params.search) searchParams.search = params.search;
@@ -87,11 +88,16 @@ export async function fetchEventById(id: string): Promise<ApiEvent> {
 
 export async function verifyVoucher(
   eventId: string,
-  code: string
+  code: string,
 ): Promise<{ valid: boolean; code: string; discountAmount: number }> {
-  const res = await api
-    .get(`events/${eventId}/vouchers/verify/${code}`)
-    .json<ApiResponse<{ valid: boolean; code: string; discountAmount: number; remainingUsage: number }>>();
+  const res = await api.get(`events/${eventId}/vouchers/verify/${code}`).json<
+    ApiResponse<{
+      valid: boolean;
+      code: string;
+      discountAmount: number;
+      remainingUsage: number;
+    }>
+  >();
   return res.data;
 }
 
@@ -142,7 +148,7 @@ interface CreateTransactionInput {
 // ============ Transaction helpers ============
 
 export async function createTransaction(
-  input: CreateTransactionInput
+  input: CreateTransactionInput,
 ): Promise<ApiTransaction> {
   const res = await api
     .post("transactions", { json: input })
@@ -151,7 +157,7 @@ export async function createTransaction(
 }
 
 export async function fetchTransactionById(
-  id: string
+  id: string,
 ): Promise<ApiTransaction> {
   const res = await api
     .get(`transactions/${id}`)
@@ -161,7 +167,7 @@ export async function fetchTransactionById(
 
 export async function uploadPaymentProof(
   transactionId: string,
-  paymentProofUrl: string
+  paymentProofUrl: string,
 ): Promise<ApiTransaction> {
   const res = await api
     .patch(`transactions/${transactionId}/payment-proof`, {
@@ -172,7 +178,7 @@ export async function uploadPaymentProof(
 }
 
 export async function cancelTransaction(
-  transactionId: string
+  transactionId: string,
 ): Promise<ApiTransaction> {
   const res = await api
     .patch(`transactions/${transactionId}/cancel`)
@@ -236,7 +242,7 @@ export async function fetchProfile(): Promise<ApiUserProfile> {
 }
 
 export async function fetchMyTransactions(
-  params: { status?: TransactionStatus; page?: number; limit?: number } = {}
+  params: { status?: TransactionStatus; page?: number; limit?: number } = {},
 ): Promise<TransactionListData> {
   const searchParams: Record<string, string> = {};
   if (params.status) searchParams.status = params.status;
