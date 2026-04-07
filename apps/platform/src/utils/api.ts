@@ -179,3 +179,72 @@ export async function cancelTransaction(
     .json<ApiResponse<ApiTransaction>>();
   return res.data;
 }
+// ============ Profile types ============
+
+export interface ApiUserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: "CUSTOMER" | "ORGANIZER";
+  referralCode: string;
+  profileImage: string | null;
+  createdAt: string;
+  totalPoints: number;
+  coupons: {
+    id: string;
+    code: string;
+    discountAmount: number;
+    expiresAt: string;
+  }[];
+}
+
+export interface ApiTransactionListItem {
+  id: string;
+  invoiceNumber: string;
+  status: TransactionStatus;
+  totalPrice: number;
+  finalPrice: number;
+  createdAt: string;
+  event: {
+    id: string;
+    name: string;
+    venue: string;
+    startDate: string;
+  };
+  items: {
+    quantity: number;
+    pricePerUnit: number;
+    ticketType: { name: string };
+  }[];
+}
+
+interface TransactionListData {
+  transactions: ApiTransactionListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ============ Profile helpers ============
+
+export async function fetchProfile(): Promise<ApiUserProfile> {
+  const res = await api.get("auth/profile").json<ApiResponse<ApiUserProfile>>();
+  return res.data;
+}
+
+export async function fetchMyTransactions(
+  params: { status?: TransactionStatus; page?: number; limit?: number } = {}
+): Promise<TransactionListData> {
+  const searchParams: Record<string, string> = {};
+  if (params.status) searchParams.status = params.status;
+  if (params.page) searchParams.page = String(params.page);
+  if (params.limit) searchParams.limit = String(params.limit);
+
+  const res = await api
+    .get("transactions", { searchParams })
+    .json<ApiResponse<TransactionListData>>();
+  return res.data;
+}

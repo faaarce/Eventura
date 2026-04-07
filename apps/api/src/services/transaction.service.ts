@@ -371,6 +371,33 @@ export class TransactionService {
         include: { items: true },
       });
 
+      if (
+        trx.status === "DONE" ||
+        trx.status === "REJECTED" ||
+        trx.status === "EXPIRED" ||
+        trx.status === "CANCELED"
+      ) {
+        // Return full shape biar konsisten
+        return await tx.transaction.findUniqueOrThrow({
+          where: { id: transactionId },
+          include: {
+            items: { include: { ticketType: true } },
+            event: {
+              select: {
+                id: true,
+                name: true,
+                venue: true,
+                location: true,
+                startDate: true,
+                endDate: true,
+              },
+            },
+            voucher: { select: { id: true, code: true, discountAmount: true } },
+            coupon: { select: { id: true, code: true, discountAmount: true } },
+          },
+        });
+      }
+
       // 1. Restore seats
       for (const item of trx.items) {
         await tx.ticketType.update({
