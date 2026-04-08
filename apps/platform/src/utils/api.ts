@@ -307,3 +307,221 @@ export async function createReview(
     .json<ApiResponse<ApiReview>>();
   return res.data;
 }
+
+// ============ Dashboard types ============
+
+export interface ApiDashboardStats {
+  totalRevenue: number;
+  totalTransactions: number;
+  totalTicketsSold: number;
+  totalEvents: number;
+  revenueByEvent: {
+    eventId: string;
+    eventName: string;
+    revenue: number;
+    transactions: number;
+  }[];
+  transactionsByStatus: {
+    status: TransactionStatus;
+    count: number;
+  }[];
+}
+
+// ============ Dashboard helpers ============
+
+export async function fetchDashboardStats(
+  params: { year?: number; month?: number; day?: number } = {}
+): Promise<ApiDashboardStats> {
+  const searchParams: Record<string, string> = {};
+  if (params.year) searchParams.year = String(params.year);
+  if (params.month) searchParams.month = String(params.month);
+  if (params.day) searchParams.day = String(params.day);
+
+  const res = await api
+    .get("dashboard/statistics", { searchParams })
+    .json<ApiResponse<ApiDashboardStats>>();
+  return res.data;
+}
+// ============ Organizer event types ============
+
+export interface ApiOrganizerEvent {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  location: string;
+  venue: string;
+  imageUrl: string | null;
+  startDate: string;
+  endDate: string;
+  isFree: boolean;
+  createdAt: string;
+  ticketTypes: ApiTicketType[];
+}
+
+interface OrganizerEventListData {
+  events: ApiOrganizerEvent[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+interface CreateEventInput {
+  name: string;
+  description: string;
+  category: string;
+  location: string;
+  venue: string;
+  startDate: string; // ISO string
+  endDate: string;
+  isFree: boolean;
+  imageUrl?: string;
+  ticketTypes: {
+    name: string;
+    price: number;
+    totalSeats: number;
+  }[];
+}
+
+// ============ Organizer event helpers ============
+
+export async function fetchMyEvents(
+  params: { page?: number; limit?: number } = {}
+): Promise<OrganizerEventListData> {
+  const searchParams: Record<string, string> = {};
+  if (params.page) searchParams.page = String(params.page);
+  if (params.limit) searchParams.limit = String(params.limit);
+
+  const res = await api
+    .get("events/organizer/my-events", { searchParams })
+    .json<ApiResponse<OrganizerEventListData>>();
+  return res.data;
+}
+
+export async function createEvent(
+  input: CreateEventInput
+): Promise<ApiOrganizerEvent> {
+  const res = await api
+    .post("events", { json: input })
+    .json<ApiResponse<ApiOrganizerEvent>>();
+  return res.data;
+}
+
+// ============ Organizer transaction types ============
+
+export interface ApiOrganizerTransaction {
+  id: string;
+  invoiceNumber: string;
+  status: TransactionStatus;
+  totalPrice: number;
+  finalPrice: number;
+  pointsUsed: number;
+  paymentProof: string | null;
+  paymentDeadline: string;
+  expiresAt: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  event: {
+    id: string;
+    name: string;
+  };
+  items: {
+    quantity: number;
+    pricePerUnit: number;
+    ticketType: { name: string };
+  }[];
+}
+
+interface OrganizerTransactionListData {
+  transactions: ApiOrganizerTransaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// ============ Organizer transaction helpers ============
+
+export async function fetchOrganizerTransactions(
+  params: { status?: TransactionStatus; page?: number; limit?: number } = {}
+): Promise<OrganizerTransactionListData> {
+  const searchParams: Record<string, string> = {};
+  if (params.status) searchParams.status = params.status;
+  if (params.page) searchParams.page = String(params.page);
+  if (params.limit) searchParams.limit = String(params.limit);
+
+  const res = await api
+    .get("transactions/organizer", { searchParams })
+    .json<ApiResponse<OrganizerTransactionListData>>();
+  return res.data;
+}
+
+export async function acceptTransaction(
+  transactionId: string
+): Promise<ApiTransaction> {
+  const res = await api
+    .patch(`transactions/${transactionId}/accept`)
+    .json<ApiResponse<ApiTransaction>>();
+  return res.data;
+}
+
+export async function rejectTransaction(
+  transactionId: string
+): Promise<ApiTransaction> {
+  const res = await api
+    .patch(`transactions/${transactionId}/reject`)
+    .json<ApiResponse<ApiTransaction>>();
+  return res.data;
+}
+
+// ============ Voucher types ============
+
+export interface ApiVoucher {
+  id: string;
+  code: string;
+  discountAmount: number;
+  startDate: string;
+  endDate: string;
+  maxUsage: number;
+  usedCount: number;
+  eventId: string;
+  createdAt: string;
+}
+
+interface CreateVoucherInput {
+  code: string;
+  discountAmount: number;
+  startDate: string;
+  endDate: string;
+  maxUsage: number;
+}
+
+// ============ Voucher helpers ============
+
+export async function fetchEventVouchers(
+  eventId: string
+): Promise<ApiVoucher[]> {
+  const res = await api
+    .get(`events/${eventId}/vouchers`)
+    .json<ApiResponse<ApiVoucher[]>>();
+  return res.data;
+}
+
+export async function createVoucher(
+  eventId: string,
+  input: CreateVoucherInput
+): Promise<ApiVoucher> {
+  const res = await api
+    .post(`events/${eventId}/vouchers`, { json: input })
+    .json<ApiResponse<ApiVoucher>>();
+  return res.data;
+}

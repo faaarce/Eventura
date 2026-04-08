@@ -31,7 +31,7 @@ import {
 } from "@/utils/api";
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
-import Cookies from "js-cookie";
+import { logout } from "@/utils/auth";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -158,10 +158,10 @@ function ProfilePage() {
   };
   
   const handleLogout = () => {
-    if (!confirm("Yakin mau logout?")) return;
-    Cookies.remove("token");
-    navigate({ to: "/auth/login" });
-  };
+  if (!confirm("Yakin mau logout?")) return;
+  logout();
+  navigate({ to: "/auth/login" });
+};
 
   const filteredTransactions =
     statusFilter === "ALL"
