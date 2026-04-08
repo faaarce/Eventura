@@ -1,6 +1,7 @@
 // apps/platform/src/routes/transactions/$transactionId.tsx
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { isAuthenticated } from "@/utils/auth";
 import {
   CheckCircle2,
   Clock,
@@ -22,15 +23,16 @@ import {
 export const Route = createFileRoute("/transactions/$transactionId")({
   component: TransactionDetailPage,
   ssr: false,
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    if (!isAuthenticated()) {
+      throw redirect({ to: "/auth/login" });
+    }
+  },
   loader: async ({ params }) => {
     const transaction = await fetchTransactionById(params.transactionId);
     return { transaction };
   },
-  pendingComponent: () => (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-    </div>
-  ),
 });
 
 function formatPrice(price: number): string {

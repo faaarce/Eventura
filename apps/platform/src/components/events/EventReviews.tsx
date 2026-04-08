@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Star, MessageSquare, Send } from "lucide-react";
+import Cookies from "js-cookie";
+import { getCurrentUser } from "@/utils/auth";
 import {
   fetchEventReviews,
   fetchMyTransactions,
@@ -35,8 +37,7 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
   const [error, setError] = useState("");
 
   const eventEnded = new Date(eventEndDate) < new Date();
-  const isLoggedIn =
-    typeof window !== "undefined" && !!localStorage.getItem("token");
+  const isLoggedIn = typeof window !== "undefined" && !!Cookies.get("token");
 
   // Load reviews + check eligibility
   useEffect(() => {
@@ -55,11 +56,10 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         if (!eventEnded || !isLoggedIn) return;
 
         // Cek user udah review atau belum
-        const userJson = localStorage.getItem("user");
-        if (userJson) {
-          const user = JSON.parse(userJson);
+        const currentUser = getCurrentUser();
+        if (currentUser) {
           const hasReviewed = reviewData.reviews.some(
-            (r) => r.user.id === user.id
+            (r) => r.user.id === currentUser.userId,
           );
           if (hasReviewed) {
             setAlreadyReviewed(true);
@@ -75,7 +75,7 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         if (cancelled) return;
 
         const attended = trxData.transactions.some(
-          (t) => t.event.id === eventId
+          (t) => t.event.id === eventId,
         );
         setCanReview(attended);
       } catch (err) {
@@ -158,7 +158,8 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
               </span>
             </div>
             <span className="text-xs text-white/40">
-              ({summary.totalReviews} {summary.totalReviews === 1 ? "review" : "reviews"})
+              ({summary.totalReviews}{" "}
+              {summary.totalReviews === 1 ? "review" : "reviews"})
             </span>
           </div>
         )}
@@ -292,7 +293,9 @@ function ReviewCard({ review }: { review: ApiReview }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-bold text-white">{review.user.name}</p>
-            <p className="text-xs text-white/30">{formatDate(review.createdAt)}</p>
+            <p className="text-xs text-white/30">
+              {formatDate(review.createdAt)}
+            </p>
           </div>
 
           {/* Rating stars */}

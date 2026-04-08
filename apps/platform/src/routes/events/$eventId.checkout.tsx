@@ -1,5 +1,5 @@
-// apps/platform/src/routes/events/$eventId.checkout.tsx
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { isAuthenticated } from "@/utils/auth";
 import {
   ArrowLeft,
   X,
@@ -104,11 +104,10 @@ function CheckoutPage() {
 
   const handleCheckout = async () => {
     // 1. Cek login dulu
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate({ to: "/auth/login" });
-      return;
-    }
+    if (!isAuthenticated()) {
+    navigate({ to: "/auth/login" });
+    return;
+  }
 
     // 2. Build items array dari quantities
     const items = Object.entries(quantities)
