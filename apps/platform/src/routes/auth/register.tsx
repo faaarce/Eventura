@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useState } from "react";
+import { decodeToken } from "@/utils/auth";
 
 export const Route = createFileRoute("/auth/register")({
   component: RegisterPage,
@@ -68,8 +69,12 @@ function RegisterPage() {
 
       // Save token & redirect
       Cookies.set("token", data.data.token, { expires: 1 });
-      
-      navigate({ to: "/events" });
+      const user = decodeToken(data.data.token);
+      if (user?.role === "ORGANIZER") {
+        navigate({ to: "/organizer/dashboard" });
+      } else {
+        navigate({ to: "/events" });
+      }
     } catch {
       setError("Tidak bisa terhubung ke server");
     } finally {

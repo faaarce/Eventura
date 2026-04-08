@@ -31,13 +31,13 @@ import {
 } from "@/utils/api";
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
-import { logout } from "@/utils/auth";
+import { logout, isAuthenticated } from "@/utils/auth";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
   ssr: false,
   beforeLoad: () => {
-    if (typeof window !== "undefined" && !Cookies.get("token")) {
+    if (typeof window !== "undefined" && !isAuthenticated()) {
       throw redirect({ to: "/auth/login" });
     }
   },
@@ -156,12 +156,12 @@ function ProfilePage() {
       // fallback: nothing
     }
   };
-  
+
   const handleLogout = () => {
-  if (!confirm("Yakin mau logout?")) return;
-  logout();
-  navigate({ to: "/auth/login" });
-};
+    if (!confirm("Yakin mau logout?")) return;
+    logout();
+    navigate({ to: "/auth/login" });
+  };
 
   const filteredTransactions =
     statusFilter === "ALL"

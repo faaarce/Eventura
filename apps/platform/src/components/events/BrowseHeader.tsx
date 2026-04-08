@@ -2,6 +2,7 @@ import { Search, Sparkles, Menu, X, User } from "lucide-react";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import Cookies from "js-cookie";
+import { getCurrentUser } from "@/utils/auth";
 
 interface BrowseHeaderProps {
   search: string;
@@ -12,6 +13,8 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isLoggedIn = !!Cookies.get("token");
+  const user = getCurrentUser();
+  const isOrganizer = user?.role === "ORGANIZER";
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/8 bg-[#0a0a0a]/92 backdrop-blur-xl">
@@ -37,10 +40,20 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
         </div>
 
         {/* DESKTOP NAV */}
+        {/* DESKTOP NAV */}
         <nav className="ml-auto hidden items-center gap-6 text-sm font-semibold md:flex">
           <Link to="/events" className="text-white no-underline">
             Browse events
           </Link>
+
+          {isOrganizer && (
+            <Link
+              to="/organizer/dashboard"
+              className="text-white/55 no-underline hover:text-white"
+            >
+              Dashboard
+            </Link>
+          )}
 
           <a href="#" className="text-white/55 no-underline">
             Get help
@@ -93,6 +106,15 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
           >
             Browse events
           </Link>
+
+          {isOrganizer && (
+            <Link
+              to="/organizer/dashboard"
+              className="rounded-lg px-4 py-3 text-sm font-semibold text-white no-underline"
+            >
+              Dashboard
+            </Link>
+          )}
 
           {isLoggedIn ? (
             <Link
