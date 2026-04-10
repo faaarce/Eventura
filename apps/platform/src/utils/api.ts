@@ -525,3 +525,45 @@ export async function createVoucher(
     .json<ApiResponse<ApiVoucher>>();
   return res.data;
 }
+
+// ============ Attendee types ============
+
+export interface ApiAttendee {
+  name: string;
+  email: string;
+  profileImage: string | null;
+  invoiceNumber: string;
+  tickets: {
+    type: string;
+    quantity: number;
+    pricePerUnit: number;
+  }[];
+  totalQuantity: number;
+  totalPaid: number;
+  purchasedAt: string;
+}
+
+interface AttendeeListData {
+  eventName: string;
+  attendees: ApiAttendee[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export async function fetchEventAttendees(
+  eventId: string,
+  params: { page?: number; limit?: number } = {}
+): Promise<AttendeeListData> {
+  const searchParams: Record<string, string> = {};
+  if (params.page) searchParams.page = String(params.page);
+  if (params.limit) searchParams.limit = String(params.limit);
+
+  const res = await api
+    .get(`dashboard/events/${eventId}/attendees`, { searchParams })
+    .json<ApiResponse<AttendeeListData>>();
+  return res.data;
+}
