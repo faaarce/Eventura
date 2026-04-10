@@ -587,3 +587,25 @@ export async function changePassword(
   return res.data;
 }
  
+ 
+interface UpdateEventInput {
+  name?: string;
+  description?: string;
+  category?: string;
+  location?: string;
+  venue?: string;
+  startDate?: string;
+  endDate?: string;
+  imageUrl?: string;
+}
+ 
+export async function updateEvent(
+  eventId: string,
+  input: UpdateEventInput
+): Promise<ApiOrganizerEvent> {
+  const res = await api
+    .put(`events/${eventId}`, { json: input })
+    .json<ApiResponse<ApiOrganizerEvent>>();
+  return res.data;
+}
+ 
