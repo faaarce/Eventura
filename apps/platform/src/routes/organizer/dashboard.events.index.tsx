@@ -1,6 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Plus, CalendarDays, MapPin, Ticket, Users, Eye, Tag } from "lucide-react";
+import {
+  Plus,
+  CalendarDays,
+  MapPin,
+  Ticket,
+  Users,
+  Eye,
+  Tag,
+  UserCheck,
+} from "lucide-react";
 import { fetchMyEvents, type ApiOrganizerEvent } from "@/utils/api";
 
 export const Route = createFileRoute("/organizer/dashboard/events/")({
@@ -65,7 +74,6 @@ function MyEventsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="display-title text-2xl font-bold text-white sm:text-3xl">
@@ -84,7 +92,6 @@ function MyEventsPage() {
           Buat Event Baru
         </Link>
       </div>
-
 
       {loading ? (
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -215,21 +222,29 @@ function OrganizerEventCard({ event }: { event: ApiOrganizerEvent }) {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           <Link
             to="/events/$eventId"
             params={{ eventId: event.id }}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-white/4 px-3 py-2 text-xs font-semibold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
+            className="flex items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/4 px-2 py-2 text-xs font-semibold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
           >
-            <Eye size={13} />
+            <Eye size={12} />
             Lihat
+          </Link>
+          <Link
+            to="/organizer/dashboard/events/$eventId/attendees"
+            params={{ eventId: event.id }}
+            className="flex items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/4 px-2 py-2 text-xs font-semibold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
+          >
+            <UserCheck size={12} />
+            Attendees
           </Link>
           <Link
             to="/organizer/dashboard/events/$eventId/vouchers"
             params={{ eventId: event.id }}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-white/4 px-3 py-2 text-xs font-semibold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
+            className="flex items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/4 px-2 py-2 text-xs font-semibold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
           >
-            <Tag size={13} />
+            <Tag size={12} />
             Voucher
           </Link>
         </div>
