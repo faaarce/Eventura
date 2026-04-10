@@ -26,6 +26,7 @@ import { Route as EventsEventIdCheckoutRouteImport } from './routes/events/$even
 import { Route as OrganizerDashboardEventsIndexRouteImport } from './routes/organizer/dashboard.events.index'
 import { Route as OrganizerDashboardEventsNewRouteImport } from './routes/organizer/dashboard.events.new'
 import { Route as OrganizerDashboardEventsEventIdVouchersRouteImport } from './routes/organizer/dashboard.events.$eventId.vouchers'
+import { Route as OrganizerDashboardEventsEventIdEditRouteImport } from './routes/organizer/dashboard.events.$eventId.edit'
 import { Route as OrganizerDashboardEventsEventIdAttendeesRouteImport } from './routes/organizer/dashboard.events.$eventId.attendees'
 
 const ProfileRoute = ProfileRouteImport.update({
@@ -118,6 +119,12 @@ const OrganizerDashboardEventsEventIdVouchersRoute =
     path: '/events/$eventId/vouchers',
     getParentRoute: () => OrganizerDashboardRoute,
   } as any)
+const OrganizerDashboardEventsEventIdEditRoute =
+  OrganizerDashboardEventsEventIdEditRouteImport.update({
+    id: '/events/$eventId/edit',
+    path: '/events/$eventId/edit',
+    getParentRoute: () => OrganizerDashboardRoute,
+  } as any)
 const OrganizerDashboardEventsEventIdAttendeesRoute =
   OrganizerDashboardEventsEventIdAttendeesRouteImport.update({
     id: '/events/$eventId/attendees',
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/organizer/dashboard/events/new': typeof OrganizerDashboardEventsNewRoute
   '/organizer/dashboard/events/': typeof OrganizerDashboardEventsIndexRoute
   '/organizer/dashboard/events/$eventId/attendees': typeof OrganizerDashboardEventsEventIdAttendeesRoute
+  '/organizer/dashboard/events/$eventId/edit': typeof OrganizerDashboardEventsEventIdEditRoute
   '/organizer/dashboard/events/$eventId/vouchers': typeof OrganizerDashboardEventsEventIdVouchersRoute
 }
 export interface FileRoutesByTo {
@@ -161,6 +169,7 @@ export interface FileRoutesByTo {
   '/organizer/dashboard/events/new': typeof OrganizerDashboardEventsNewRoute
   '/organizer/dashboard/events': typeof OrganizerDashboardEventsIndexRoute
   '/organizer/dashboard/events/$eventId/attendees': typeof OrganizerDashboardEventsEventIdAttendeesRoute
+  '/organizer/dashboard/events/$eventId/edit': typeof OrganizerDashboardEventsEventIdEditRoute
   '/organizer/dashboard/events/$eventId/vouchers': typeof OrganizerDashboardEventsEventIdVouchersRoute
 }
 export interface FileRoutesById {
@@ -182,6 +191,7 @@ export interface FileRoutesById {
   '/organizer/dashboard/events/new': typeof OrganizerDashboardEventsNewRoute
   '/organizer/dashboard/events/': typeof OrganizerDashboardEventsIndexRoute
   '/organizer/dashboard/events/$eventId/attendees': typeof OrganizerDashboardEventsEventIdAttendeesRoute
+  '/organizer/dashboard/events/$eventId/edit': typeof OrganizerDashboardEventsEventIdEditRoute
   '/organizer/dashboard/events/$eventId/vouchers': typeof OrganizerDashboardEventsEventIdVouchersRoute
 }
 export interface FileRouteTypes {
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/organizer/dashboard/events/new'
     | '/organizer/dashboard/events/'
     | '/organizer/dashboard/events/$eventId/attendees'
+    | '/organizer/dashboard/events/$eventId/edit'
     | '/organizer/dashboard/events/$eventId/vouchers'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/organizer/dashboard/events/new'
     | '/organizer/dashboard/events'
     | '/organizer/dashboard/events/$eventId/attendees'
+    | '/organizer/dashboard/events/$eventId/edit'
     | '/organizer/dashboard/events/$eventId/vouchers'
   id:
     | '__root__'
@@ -242,6 +254,7 @@ export interface FileRouteTypes {
     | '/organizer/dashboard/events/new'
     | '/organizer/dashboard/events/'
     | '/organizer/dashboard/events/$eventId/attendees'
+    | '/organizer/dashboard/events/$eventId/edit'
     | '/organizer/dashboard/events/$eventId/vouchers'
   fileRoutesById: FileRoutesById
 }
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizerDashboardEventsEventIdVouchersRouteImport
       parentRoute: typeof OrganizerDashboardRoute
     }
+    '/organizer/dashboard/events/$eventId/edit': {
+      id: '/organizer/dashboard/events/$eventId/edit'
+      path: '/events/$eventId/edit'
+      fullPath: '/organizer/dashboard/events/$eventId/edit'
+      preLoaderRoute: typeof OrganizerDashboardEventsEventIdEditRouteImport
+      parentRoute: typeof OrganizerDashboardRoute
+    }
     '/organizer/dashboard/events/$eventId/attendees': {
       id: '/organizer/dashboard/events/$eventId/attendees'
       path: '/events/$eventId/attendees'
@@ -409,6 +429,7 @@ interface OrganizerDashboardRouteChildren {
   OrganizerDashboardEventsNewRoute: typeof OrganizerDashboardEventsNewRoute
   OrganizerDashboardEventsIndexRoute: typeof OrganizerDashboardEventsIndexRoute
   OrganizerDashboardEventsEventIdAttendeesRoute: typeof OrganizerDashboardEventsEventIdAttendeesRoute
+  OrganizerDashboardEventsEventIdEditRoute: typeof OrganizerDashboardEventsEventIdEditRoute
   OrganizerDashboardEventsEventIdVouchersRoute: typeof OrganizerDashboardEventsEventIdVouchersRoute
 }
 
@@ -419,6 +440,8 @@ const OrganizerDashboardRouteChildren: OrganizerDashboardRouteChildren = {
   OrganizerDashboardEventsIndexRoute: OrganizerDashboardEventsIndexRoute,
   OrganizerDashboardEventsEventIdAttendeesRoute:
     OrganizerDashboardEventsEventIdAttendeesRoute,
+  OrganizerDashboardEventsEventIdEditRoute:
+    OrganizerDashboardEventsEventIdEditRoute,
   OrganizerDashboardEventsEventIdVouchersRoute:
     OrganizerDashboardEventsEventIdVouchersRoute,
 }
