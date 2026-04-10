@@ -1,3 +1,9 @@
+import {
+  fetchEventById,
+  verifyVoucher,
+  createTransaction,
+  fetchProfile,
+} from "@/utils/api";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { isAuthenticated } from "@/utils/auth";
 import {
@@ -11,6 +17,7 @@ import {
   CalendarDays,
   MapPin,
   Shield,
+  Sparkles,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { fetchEventById, verifyVoucher, createTransaction } from "@/utils/api";
@@ -21,6 +28,12 @@ export const Route = createFileRoute("/events/$eventId/checkout")({
   loader: async ({ params }) => {
     const event = await fetchEventById(params.eventId);
     return { event };
+    let totalPoints = 0;
+    try {
+      const profile = await fetchProfile();
+      totalPoints = profile.totalPoints;
+    } catch {}
+    return { event, totalPoints };
   },
 });
 
@@ -55,13 +68,14 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
-  const { event } = Route.useLoaderData();
+  const { event, totalPoints } = Route.useLoaderData();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState("");
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [step] = useState<"ticket" | "payment" | "done">("ticket");
+  const [usePoints, setUsePoints] = useState(false);
 
   const categoryKey = event.category.toLowerCase();
   const gradient =
@@ -84,8 +98,9 @@ function CheckoutPage() {
     }, 0);
   }, [quantities, event.ticketTypes]);
 
-  const total = Math.max(0, subtotal - voucherDiscount);
-  const hasItems = Object.values(quantities).some((q) => q > 0);
+  const afterVoucher = Math.max(0, subtotal - voucherDiscount);
+  const pointsApplied = usePoints ? Math.min(totalPoints, afterVoucher) : 0;
+  const total = Math.max(0, afterVoucher - pointsApplied);
 
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) return;
@@ -105,9 +120,9 @@ function CheckoutPage() {
   const handleCheckout = async () => {
     // 1. Cek login dulu
     if (!isAuthenticated()) {
-    navigate({ to: "/auth/login" });
-    return;
-  }
+      navigate({ to: "/auth/login" });
+      return;
+    }
 
     // 2. Build items array dari quantities
     const items = Object.entries(quantities)
@@ -127,6 +142,7 @@ function CheckoutPage() {
         eventId: event.id,
         items,
         voucherCode: voucherDiscount > 0 ? voucherCode : undefined,
+        usePoints: usePoints,
       });
 
       // Redirect ke halaman payment
@@ -148,7 +164,6 @@ function CheckoutPage() {
   };
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Stepper header */}
       <header className="sticky top-0 z-50 border-b border-white/8 bg-[#0a0a0a]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3.5 sm:px-6">
           <Link
@@ -189,7 +204,6 @@ function CheckoutPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-        {/* Event info card */}
         <div className="rise-in flex items-center gap-4 rounded-2xl border border-white/8 bg-white/4 p-4">
           <div
             className={`h-16 w-16 shrink-0 rounded-xl bg-linear-to-br ${gradient} sm:h-20 sm:w-20`}
@@ -211,7 +225,6 @@ function CheckoutPage() {
           </div>
         </div>
 
-        {/* Ticket types */}
         <section
           className="rise-in mt-6 space-y-3 sm:mt-8"
           style={{ animationDelay: "60ms" }}
@@ -290,7 +303,6 @@ function CheckoutPage() {
           })}
         </section>
 
-        {/* Voucher */}
         <section
           className="rise-in mt-6 sm:mt-8"
           style={{ animationDelay: "120ms" }}
@@ -334,7 +346,40 @@ function CheckoutPage() {
           )}
         </section>
 
-        {/* Price breakdown */}
+        {totalPoints > 0 && hasItems && (
+          <section
+            className="rise-in mt-6 sm:mt-8"
+            style={{ animationDelay: "150ms" }}
+          >
+            <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">
+              Points Balance
+            </h2>
+            <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/12 bg-gradient-to-br from-[#2f6a4a]/15 to-transparent p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15">
+                  <Sparkles size={18} className="text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    Gunakan {formatPrice(totalPoints)} points
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/50">
+                    {usePoints && pointsApplied > 0
+                      ? `Potongan ${formatPrice(pointsApplied)} akan diterapkan`
+                      : "Kurangi total pembayaran dengan points kamu"}
+                  </p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={usePoints}
+                onChange={(e) => setUsePoints(e.target.checked)}
+                className="h-5 w-5 cursor-pointer accent-emerald-400"
+              />
+            </label>
+          </section>
+        )}
+
         {hasItems && (
           <section
             className="rise-in mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-4 sm:mt-8 sm:p-5"
@@ -367,6 +412,15 @@ function CheckoutPage() {
                 </div>
               )}
 
+              {pointsApplied > 0 && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Points</span>
+                  <span>-{formatPrice(pointsApplied)}</span>
+                </div>
+              )}
+
+              <div className="mt-2 border-t border-white/10 pt-3"></div>
+
               <div className="mt-2 border-t border-white/10 pt-3">
                 <div className="flex justify-between text-base font-bold text-white">
                   <span>Total</span>
@@ -377,7 +431,6 @@ function CheckoutPage() {
           </section>
         )}
 
-        {/* Terms */}
         <div
           className="rise-in mt-6 flex items-start gap-3 text-xs leading-relaxed text-white/35 sm:mt-8"
           style={{ animationDelay: "240ms" }}
@@ -392,7 +445,6 @@ function CheckoutPage() {
         <div className="h-28" />
       </main>
 
-      {/* Sticky checkout button */}
       <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/8 bg-[#0a0a0a]/95 p-4 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl">
           {checkoutError && (
