@@ -15,6 +15,16 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+const updateProfileSchema = z.object({
+  name: z.string().min(2).optional(),
+  profileImage: z.string().optional(),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Password lama wajib diisi"),
+  newPassword: z.string().min(6, "Password baru minimal 6 karakter"),
+});
+
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const data = registerSchema.parse(req.body);
@@ -38,6 +48,26 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 export async function getProfile(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await authService.getProfile(req.user!.userId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = updateProfileSchema.parse(req.body);
+    const result = await authService.updateProfile(req.user!.userId, data);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function changePassword(req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = changePasswordSchema.parse(req.body);
+    const result = await authService.changePassword(req.user!.userId, data);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

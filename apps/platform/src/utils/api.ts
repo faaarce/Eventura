@@ -567,3 +567,23 @@ export async function fetchEventAttendees(
     .json<ApiResponse<AttendeeListData>>();
   return res.data;
 }
+
+
+export async function updateProfile(
+  input: { name?: string; profileImage?: string }
+): Promise<{ id: string; name: string; email: string; role: string; referralCode: string; profileImage: string | null; createdAt: string }> {
+  const res = await api
+    .patch("auth/profile", { json: input })
+    .json<ApiResponse<any>>();
+  return res.data;
+}
+ 
+export async function changePassword(
+  input: { currentPassword: string; newPassword: string }
+): Promise<{ message: string }> {
+  const res = await api
+    .patch("auth/change-password", { json: input })
+    .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}
+ 

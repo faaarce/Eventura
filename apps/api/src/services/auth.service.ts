@@ -148,3 +148,49 @@ export async function getProfile(userId: string) {
 
   return { ...user, totalPoints, coupons };
 }
+
+export async function updateProfile(
+  userId: string,
+  input: { name?: string; profileImage?: string }
+) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new ApiError(404, "User not found");
+
+  return await prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(input.name && { name: input.name }),
+      ...(input.profileImage !== undefined && {
+        profileImage: input.profileImage,
+      }),
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      referralCode: true,
+      profileImage: true,
+      createdAt: true,
+    },
+  });
+}
+
+export async function changePassword(
+  userId: string,
+  input: { currentPassword: string; newPassword: string }
+) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new ApiError(404, "User not found");
+
+  const valid = await bcrypt.compare(input.currentPassword, user.password);
+  if (!valid) throw new ApiError(400, "Password lama salah");
+
+  const hashed = await bcrypt.hash(input.newPassword, 10);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashed },
+  });
+
+  return { message: "Password berhasil diubah" };
+}
