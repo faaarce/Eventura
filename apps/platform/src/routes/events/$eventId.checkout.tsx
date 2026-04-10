@@ -20,14 +20,13 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import { fetchEventById, verifyVoucher, createTransaction } from "@/utils/api";
+
 import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/events/$eventId/checkout")({
   component: CheckoutPage,
   loader: async ({ params }) => {
     const event = await fetchEventById(params.eventId);
-    return { event };
     let totalPoints = 0;
     try {
       const profile = await fetchProfile();
@@ -97,6 +96,8 @@ function CheckoutPage() {
       return sum + ticket.price * (quantities[ticket.id] || 0);
     }, 0);
   }, [quantities, event.ticketTypes]);
+
+  const hasItems = Object.values(quantities).some((q) => q > 0);
 
   const afterVoucher = Math.max(0, subtotal - voucherDiscount);
   const pointsApplied = usePoints ? Math.min(totalPoints, afterVoucher) : 0;
@@ -418,8 +419,6 @@ function CheckoutPage() {
                   <span>-{formatPrice(pointsApplied)}</span>
                 </div>
               )}
-
-              <div className="mt-2 border-t border-white/10 pt-3"></div>
 
               <div className="mt-2 border-t border-white/10 pt-3">
                 <div className="flex justify-between text-base font-bold text-white">
