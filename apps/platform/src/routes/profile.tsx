@@ -21,10 +21,17 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
+  Pencil,
+  Lock,
+  Save,
+  X,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   fetchProfile,
   fetchMyTransactions,
+  updateProfile,
+  changePassword,
   type ApiUserProfile,
   type ApiTransactionListItem,
   type TransactionStatus,
@@ -138,14 +145,36 @@ const statusConfig: Record<
 };
 
 function ProfilePage() {
-  const { profile, transactions } = Route.useLoaderData();
+  const { profile: initialProfile, transactions } = Route.useLoaderData();
 
   const navigate = useNavigate();
+  const [profile, setProfile] = useState(initialProfile);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">(
     "ALL",
   );
+
+  // Edit profile state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: profile.name,
+    profileImage: profile.profileImage || "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editSuccess, setEditSuccess] = useState("");
+
+  // Change password state
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwForm, setPwForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
 
   const handleCopyReferral = async () => {
     try {
@@ -163,6 +192,86 @@ function ProfilePage() {
     navigate({ to: "/auth/login" });
   };
 
+  // ========== Edit Profile ==========
+  const handleEditSubmit = async () => {
+    if (!editForm.name || editForm.name.length < 2) {
+      setEditError("Nama minimal 2 karakter");
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError("");
+    setEditSuccess("");
+
+    try {
+      const updated = await updateProfile({
+        name: editForm.name,
+        profileImage: editForm.profileImage || undefined,
+      });
+      setProfile((prev) => ({
+        ...prev,
+        name: updated.name,
+        profileImage: updated.profileImage,
+      }));
+      setEditSuccess("Profil berhasil diupdate!");
+      setTimeout(() => {
+        setEditSuccess("");
+        setEditOpen(false);
+      }, 1500);
+    } catch (err: any) {
+      try {
+        const body = await err.response?.json();
+        setEditError(body?.message || "Gagal update profil");
+      } catch {
+        setEditError("Gagal update profil. Coba lagi.");
+      }
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  // ========== Change Password ==========
+  const handlePwSubmit = async () => {
+    if (!pwForm.currentPassword) {
+      setPwError("Password lama wajib diisi");
+      return;
+    }
+    if (pwForm.newPassword.length < 6) {
+      setPwError("Password baru minimal 6 karakter");
+      return;
+    }
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError("Konfirmasi password tidak cocok");
+      return;
+    }
+
+    setPwSaving(true);
+    setPwError("");
+    setPwSuccess("");
+
+    try {
+      await changePassword({
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+      });
+      setPwSuccess("Password berhasil diubah!");
+      setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => {
+        setPwSuccess("");
+        setPwOpen(false);
+      }, 1500);
+    } catch (err: any) {
+      try {
+        const body = await err.response?.json();
+        setPwError(body?.message || "Gagal ubah password");
+      } catch {
+        setPwError("Gagal ubah password. Coba lagi.");
+      }
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   const filteredTransactions =
     statusFilter === "ALL"
       ? transactions
@@ -177,7 +286,15 @@ function ProfilePage() {
         <div className="rise-in flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/8 text-2xl font-bold text-white sm:h-20 sm:w-20 sm:text-3xl">
-              {profile.name.charAt(0).toUpperCase()}
+              {profile.profileImage ? (
+                <img
+                  src={profile.profileImage}
+                  alt={profile.name}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                profile.name.charAt(0).toUpperCase()
+              )}
             </div>
             <div className="min-w-0">
               <h1 className="display-title text-2xl font-bold text-white sm:text-3xl">
@@ -193,21 +310,214 @@ function ProfilePage() {
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="flex shrink-0 items-center justify-center gap-2 self-start rounded-full border border-white/12 bg-white/4 px-4 py-2 text-sm font-semibold text-white/60 transition-all hover:bg-red-500/10 hover:text-red-400 sm:self-auto"
-          >
-            <LogOut size={15} />
-            Logout
-          </button>
+          <div className="flex shrink-0 gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => {
+                setEditOpen(!editOpen);
+                setPwOpen(false);
+                setEditForm({
+                  name: profile.name,
+                  profileImage: profile.profileImage || "",
+                });
+                setEditError("");
+                setEditSuccess("");
+              }}
+              className="flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/4 px-4 py-2 text-sm font-semibold text-white/60 transition-all hover:bg-white/8 hover:text-white"
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center gap-2 rounded-full border border-white/12 bg-white/4 px-4 py-2 text-sm font-semibold text-white/60 transition-all hover:bg-red-500/10 hover:text-red-400"
+            >
+              <LogOut size={15} />
+              Logout
+            </button>
+          </div>
         </div>
+
+        {/* ========== Edit Profile Section ========== */}
+        {editOpen && (
+          <section
+            className="rise-in mt-6 rounded-2xl border border-white/12 bg-white/5 p-5 sm:p-6"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white/70">
+                <Pencil size={14} />
+                Edit Profil
+              </h2>
+              <button
+                onClick={() => setEditOpen(false)}
+                className="text-xs font-semibold text-white/50 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {/* Name */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">
+                  Nama
+                </label>
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30">
+                  <User size={16} className="shrink-0 text-white/30" />
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => {
+                      setEditForm((prev) => ({ ...prev, name: e.target.value }));
+                      setEditError("");
+                    }}
+                    className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
+                  />
+                </div>
+              </div>
+
+              {/* Profile Image URL */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">
+                  URL Foto Profil <span className="text-white/25 normal-case">(opsional)</span>
+                </label>
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30">
+                  <ImageIcon size={16} className="shrink-0 text-white/30" />
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={editForm.profileImage}
+                    onChange={(e) => {
+                      setEditForm((prev) => ({
+                        ...prev,
+                        profileImage: e.target.value,
+                      }));
+                      setEditError("");
+                    }}
+                    className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
+                  />
+                </div>
+              </div>
+
+              {editError && (
+                <p className="text-xs font-semibold text-red-400">{editError}</p>
+              )}
+              {editSuccess && (
+                <p className="text-xs font-semibold text-emerald-400">{editSuccess}</p>
+              )}
+
+              <button
+                onClick={handleEditSubmit}
+                disabled={editSaving}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#0a0a0a] transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {editSaving ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#0a0a0a]/20 border-t-[#0a0a0a]" />
+                ) : (
+                  <>
+                    <Save size={15} />
+                    Simpan Perubahan
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Change Password toggle */}
+            <div className="mt-5 border-t border-white/10 pt-5">
+              <button
+                onClick={() => {
+                  setPwOpen(!pwOpen);
+                  setPwError("");
+                  setPwSuccess("");
+                  setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                }}
+                className="flex items-center gap-2 text-sm font-semibold text-white/60 transition-colors hover:text-white"
+              >
+                <Lock size={14} />
+                {pwOpen ? "Tutup Ganti Password" : "Ganti Password"}
+              </button>
+
+              {pwOpen && (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">
+                      Password Lama
+                    </label>
+                    <input
+                      type="password"
+                      value={pwForm.currentPassword}
+                      onChange={(e) => {
+                        setPwForm((prev) => ({ ...prev, currentPassword: e.target.value }));
+                        setPwError("");
+                      }}
+                      className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
+                      placeholder="Masukkan password lama"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">
+                      Password Baru
+                    </label>
+                    <input
+                      type="password"
+                      value={pwForm.newPassword}
+                      onChange={(e) => {
+                        setPwForm((prev) => ({ ...prev, newPassword: e.target.value }));
+                        setPwError("");
+                      }}
+                      className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
+                      placeholder="Minimal 6 karakter"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">
+                      Konfirmasi Password Baru
+                    </label>
+                    <input
+                      type="password"
+                      value={pwForm.confirmPassword}
+                      onChange={(e) => {
+                        setPwForm((prev) => ({ ...prev, confirmPassword: e.target.value }));
+                        setPwError("");
+                      }}
+                      className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
+                      placeholder="Ulangi password baru"
+                    />
+                  </div>
+
+                  {pwError && (
+                    <p className="text-xs font-semibold text-red-400">{pwError}</p>
+                  )}
+                  {pwSuccess && (
+                    <p className="text-xs font-semibold text-emerald-400">{pwSuccess}</p>
+                  )}
+
+                  <button
+                    onClick={handlePwSubmit}
+                    disabled={pwSaving}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/8 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {pwSaving ? (
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                    ) : (
+                      <>
+                        <Lock size={15} />
+                        Ubah Password
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Stats cards */}
         <div
           className="rise-in mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4"
           style={{ animationDelay: "60ms" }}
         >
-          {/* Points */}
           <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-[#2f6a4a]/20 to-transparent p-5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
               <Sparkles size={14} />
@@ -221,7 +531,6 @@ function ProfilePage() {
             </p>
           </div>
 
-          {/* Coupons */}
           <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-[#328f97]/20 to-transparent p-5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#60d7cf]">
               <Ticket size={14} />
@@ -233,7 +542,6 @@ function ProfilePage() {
             <p className="mt-1 text-xs text-white/40">Kupon aktif</p>
           </div>
 
-          {/* Transactions count */}
           <div className="rounded-2xl border border-white/8 bg-gradient-to-br from-[#6366f1]/20 to-transparent p-5">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-indigo-400">
               <CalendarDays size={14} />
@@ -338,7 +646,6 @@ function ProfilePage() {
             </h2>
           </div>
 
-          {/* Status filter chips */}
           <div className="mt-4 -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
             {(
               [
@@ -367,7 +674,6 @@ function ProfilePage() {
             ))}
           </div>
 
-          {/* Transaction list */}
           {filteredTransactions.length > 0 ? (
             <div className="mt-4 space-y-3 sm:mt-6">
               {filteredTransactions.map((trx) => (
@@ -401,22 +707,13 @@ function ProfilePage() {
         <div className="page-wrap flex flex-col items-center gap-4 py-6 text-sm text-white/30 sm:flex-row sm:justify-between sm:py-8">
           <p>© 2026 Eventura</p>
           <div className="flex gap-6">
-            <a
-              href="#"
-              className="text-white/30 no-underline hover:text-white/50"
-            >
+            <a href="#" className="text-white/30 no-underline hover:text-white/50">
               Privacy
             </a>
-            <a
-              href="#"
-              className="text-white/30 no-underline hover:text-white/50"
-            >
+            <a href="#" className="text-white/30 no-underline hover:text-white/50">
               Terms
             </a>
-            <a
-              href="#"
-              className="text-white/30 no-underline hover:text-white/50"
-            >
+            <a href="#" className="text-white/30 no-underline hover:text-white/50">
               Help
             </a>
           </div>
@@ -426,11 +723,9 @@ function ProfilePage() {
   );
 }
 
-// Separate component buat transaction row biar readable
 function TransactionRow({ trx }: { trx: ApiTransactionListItem }) {
   const config = statusConfig[trx.status];
   const StatusIcon = config.icon;
-
   const totalTickets = trx.items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
