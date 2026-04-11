@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pembayaran Diterima — Eventura</title>
+</head>
+<body style="margin:0;padding:0;background-color:#050505;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;">
+  <div style="display:none;font-size:1px;color:#050505;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+    Pembayaran {{invoiceNumber}} diterima! Tiket kamu sudah aktif.
+  </div>
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#050505;">
+    <tr><td align="center" style="padding:20px 16px;">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0a0a0a;border-radius:20px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
+
+        <!-- Header -->
+        <tr><td style="padding:32px 40px;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="width:32px;height:32px;background:#ffffff;border-radius:8px;text-align:center;vertical-align:middle;font-size:16px;">✦</td>
+            <td style="padding-left:10px;font-family:Georgia,'Times New Roman',serif;font-size:20px;font-weight:700;color:#ffffff;">Eventura</td>
+          </tr></table>
+        </td></tr>
+
+        <!-- Hero -->
+        <tr><td style="padding:40px 40px 24px;">
+          <div style="display:inline-block;padding:4px 14px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;background:rgba(16,185,129,0.12);color:#34d399;">
+            PEMBAYARAN DITERIMA
+          </div>
+          <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:700;color:#ffffff;margin:16px 0 12px;line-height:1.2;">
+            Tiket Kamu Aktif! 🎉
+          </h1>
+          <p style="font-size:15px;color:rgba(255,255,255,0.55);margin:0;line-height:1.6;">
+            Halo <strong style="color:#ffffff;">{{customerName}}</strong>, pembayaran kamu sudah dikonfirmasi oleh organizer. Sampai ketemu di event!
+          </p>
+        </td></tr>
+
+        <!-- Event Card -->
+        <tr><td style="padding:0 40px 20px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:16px;">
+            <tr>
+              <td style="width:56px;padding:16px;">
+                <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#2f6a4a,#1a3d2b);display:flex;align-items:center;justify-content:center;">
+                  <span style="font-size:24px;">✓</span>
+                </div>
+              </td>
+              <td style="padding:16px 16px 16px 0;">
+                <p style="font-size:15px;font-weight:700;color:#ffffff;margin:0 0 4px;">{{eventName}}</p>
+                <p style="font-size:12px;color:rgba(255,255,255,0.45);margin:0;">📅 {{eventDate}} · 📍 {{eventVenue}}</p>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Ticket Summary -->
+        <tr><td style="padding:0 40px 24px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;">
+            <tr><td style="padding:24px;">
+              <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,0.4);margin:0 0 16px;">TIKET KAMU</p>
+
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <td style="padding:10px 0;font-size:13px;color:rgba(255,255,255,0.5);">Invoice</td>
+                  <td style="padding:10px 0;font-size:13px;color:#ffffff;font-weight:600;text-align:right;font-family:'Courier New',monospace;">{{invoiceNumber}}</td>
+                </tr>
+
+                {{#each items}}
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+                  <td style="padding:10px 0;font-size:13px;color:rgba(255,255,255,0.5);">{{this.ticketName}} × {{this.quantity}}</td>
+                  <td style="padding:10px 0;font-size:13px;color:#34d399;font-weight:600;text-align:right;">✓ Aktif</td>
+                </tr>
+                {{/each}}
+              </table>
+
+              <!-- Total -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.12);">
+                <tr>
+                  <td style="padding:16px 0 0;font-size:15px;font-weight:700;color:#ffffff;">Total Dibayar</td>
+                  <td style="padding:16px 0 0;font-size:20px;font-weight:700;color:#ffffff;text-align:right;">{{finalPrice}}</td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Info -->
+        <tr><td style="padding:0 40px 24px;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(96,215,207,0.06);border:1px solid rgba(96,215,207,0.15);border-radius:12px;">
+            <tr><td style="padding:16px 20px;">
+              <p style="font-size:13px;color:rgba(255,255,255,0.6);margin:0;line-height:1.5;">
+                📋 Bawa <strong style="color:#60d7cf;">ID yang sesuai dengan nama di tiket</strong> saat check-in di venue. Tiket tidak dapat dipindahtangankan.
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- CTA -->
+        <tr><td style="padding:0 40px 36px;">
+          <a href="{{baseUrl}}/transactions/{{transactionId}}" style="display:block;width:100%;padding:16px 24px;background:#ffffff;color:#0a0a0a;font-size:14px;font-weight:700;text-align:center;text-decoration:none;border-radius:12px;box-sizing:border-box;">
+            Lihat Detail Tiket →
+          </a>
+        </td></tr>
+
+        <!-- Divider + Footer -->
+        <tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);"></div></td></tr>
+        <tr><td style="padding:28px 40px;">
+          <p style="font-size:12px;color:rgba(255,255,255,0.25);margin:0 0 6px;line-height:1.5;">© 2026 Eventura. All rights reserved.</p>
+          <p style="font-size:12px;color:rgba(255,255,255,0.25);margin:0;line-height:1.5;">Email ini dikirim otomatis. Jangan balas email ini.</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

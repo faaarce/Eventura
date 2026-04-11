@@ -2,6 +2,7 @@ import { prisma } from "../utils/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { ApiError, generateReferralCode } from "../utils/helpers.js";
+import { sendWelcomeEmail } from "../utils/mail.js";
 
 interface RegisterInput {
   name: string;
@@ -90,6 +91,14 @@ export async function register(input: RegisterInput) {
   });
 
   const token = generateToken(result.id, result.email, result.role);
+
+  sendWelcomeEmail({
+    email: result.email,
+    name: result.name,
+    role: result.role,
+    referralCode: result.referralCode,
+  });
+
   return { user: result, token };
 }
 
@@ -151,7 +160,7 @@ export async function getProfile(userId: string) {
 
 export async function updateProfile(
   userId: string,
-  input: { name?: string; profileImage?: string }
+  input: { name?: string; profileImage?: string },
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found");
@@ -178,7 +187,7 @@ export async function updateProfile(
 
 export async function changePassword(
   userId: string,
-  input: { currentPassword: string; newPassword: string }
+  input: { currentPassword: string; newPassword: string },
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found");

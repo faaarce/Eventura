@@ -1,5 +1,10 @@
 import { prisma } from "../utils/prisma.js";
 import { ApiError } from "../utils/helpers.js";
+import {
+  sendTransactionAcceptedEmail,
+  sendTransactionCreatedEmail,
+  sendTransactionRejectedEmail,
+} from "../utils/mail.js";
 
 interface CreateTransactionInput {
   eventId: string;
@@ -18,7 +23,14 @@ interface TransactionQuery {
 const TRANSACTION_INCLUDE = {
   items: { include: { ticketType: true } },
   event: {
-    select: { id: true, name: true, venue: true, location: true, startDate: true, endDate: true },
+    select: {
+      id: true,
+      name: true,
+      venue: true,
+      location: true,
+      startDate: true,
+      endDate: true,
+    },
   },
   voucher: { select: { id: true, code: true, discountAmount: true } },
   coupon: { select: { id: true, code: true, discountAmount: true } },
@@ -30,23 +42,35 @@ function generateInvoiceNumber(): string {
   return `INV-${date}-${random}`;
 }
 
-export async function createTransaction(userId: string, input: CreateTransactionInput) {
+export async function createTransaction(
+  userId: string,
+  input: CreateTransactionInput,
+) {
   return await prisma.$transaction(async (tx) => {
     const event = await tx.event.findUnique({
       where: { id: input.eventId },
       include: { ticketTypes: true },
     });
     if (!event) throw new ApiError(404, "Event not found");
-    if (new Date(event.endDate) < new Date()) throw new ApiError(400, "Event has already ended");
-    if (!input.items.length) throw new ApiError(400, "At least one ticket type is required");
+    if (new Date(event.endDate) < new Date())
+      throw new ApiError(400, "Event has already ended");
+    if (!input.items.length)
+      throw new ApiError(400, "At least one ticket type is required");
 
     let totalPrice = 0;
     for (const item of input.items) {
-      const ticketType = event.ticketTypes.find((t) => t.id === item.ticketTypeId);
-      if (!ticketType) throw new ApiError(404, `Ticket type ${item.ticketTypeId} not found`);
-      if (item.quantity < 1) throw new ApiError(400, "Quantity must be at least 1");
+      const ticketType = event.ticketTypes.find(
+        (t) => t.id === item.ticketTypeId,
+      );
+      if (!ticketType)
+        throw new ApiError(404, `Ticket type ${item.ticketTypeId} not found`);
+      if (item.quantity < 1)
+        throw new ApiError(400, "Quantity must be at least 1");
       if (ticketType.availableSeats < item.quantity) {
-        throw new ApiError(400, `Not enough seats for ${ticketType.name}. Available: ${ticketType.availableSeats}`);
+        throw new ApiError(
+          400,
+          `Not enough seats for ${ticketType.name}. Available: ${ticketType.availableSeats}`,
+        );
       }
       totalPrice += ticketType.price * item.quantity;
     }
@@ -64,10 +88,14 @@ export async function createTransaction(userId: string, input: CreateTransaction
         },
       });
       if (!voucher) throw new ApiError(400, "Invalid or expired voucher");
-      if (voucher.usedCount >= voucher.maxUsage) throw new ApiError(400, "Voucher has reached max usage");
+      if (voucher.usedCount >= voucher.maxUsage)
+        throw new ApiError(400, "Voucher has reached max usage");
       voucherDiscount = voucher.discountAmount;
       voucherId = voucher.id;
-      await tx.voucher.update({ where: { id: voucher.id }, data: { usedCount: { increment: 1 } } });
+      await tx.voucher.update({
+        where: { id: voucher.id },
+        data: { usedCount: { increment: 1 } },
+      });
     }
 
     // Apply coupon
@@ -75,12 +103,20 @@ export async function createTransaction(userId: string, input: CreateTransaction
     let couponId: string | undefined;
     if (input.couponId) {
       const coupon = await tx.coupon.findFirst({
-        where: { id: input.couponId, userId, isUsed: false, expiresAt: { gte: new Date() } },
+        where: {
+          id: input.couponId,
+          userId,
+          isUsed: false,
+          expiresAt: { gte: new Date() },
+        },
       });
       if (!coupon) throw new ApiError(400, "Invalid or expired coupon");
       couponDiscount = coupon.discountAmount;
       couponId = coupon.id;
-      await tx.coupon.update({ where: { id: coupon.id }, data: { isUsed: true } });
+      await tx.coupon.update({
+        where: { id: coupon.id },
+        data: { isUsed: true },
+      });
     }
 
     // Apply points (FIFO)
@@ -90,15 +126,24 @@ export async function createTransaction(userId: string, input: CreateTransaction
         where: { userId, isUsed: false, expiresAt: { gte: new Date() } },
         orderBy: { expiresAt: "asc" },
       });
-      const remaining = Math.max(0, totalPrice - voucherDiscount - couponDiscount);
+      const remaining = Math.max(
+        0,
+        totalPrice - voucherDiscount - couponDiscount,
+      );
       for (const point of activePoints) {
         if (pointsUsed >= remaining) break;
         pointsUsed += Math.min(point.amount, remaining - pointsUsed);
-        await tx.point.update({ where: { id: point.id }, data: { isUsed: true } });
+        await tx.point.update({
+          where: { id: point.id },
+          data: { isUsed: true },
+        });
       }
     }
 
-    const finalPrice = Math.max(0, totalPrice - voucherDiscount - couponDiscount - pointsUsed);
+    const finalPrice = Math.max(
+      0,
+      totalPrice - voucherDiscount - couponDiscount - pointsUsed,
+    );
 
     // Deduct seats
     for (const item of input.items) {
@@ -109,7 +154,7 @@ export async function createTransaction(userId: string, input: CreateTransaction
     }
 
     const now = new Date();
-    return await tx.transaction.create({
+    const transaction = await tx.transaction.create({
       data: {
         invoiceNumber: generateInvoiceNumber(),
         userId,
@@ -125,12 +170,45 @@ export async function createTransaction(userId: string, input: CreateTransaction
           create: input.items.map((item) => ({
             ticketTypeId: item.ticketTypeId,
             quantity: item.quantity,
-            pricePerUnit: event.ticketTypes.find((t) => t.id === item.ticketTypeId)!.price,
+            pricePerUnit: event.ticketTypes.find(
+              (t) => t.id === item.ticketTypeId,
+            )!.price,
           })),
         },
       },
       include: TRANSACTION_INCLUDE,
     });
+
+    const user = await tx.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true, name: true },
+    });
+
+    // Fire-and-forget
+    sendTransactionCreatedEmail({
+      customerEmail: user.email,
+      customerName: user.name,
+      invoiceNumber: transaction.invoiceNumber,
+      eventName: event.name,
+      eventDate: event.startDate,
+      eventVenue: `${event.venue}, ${event.location}`,
+      items: input.items.map((item) => {
+        const tt = event.ticketTypes.find((t) => t.id === item.ticketTypeId)!;
+        return {
+          ticketName: tt.name,
+          quantity: item.quantity,
+          subtotal: tt.price * item.quantity,
+        };
+      }),
+      voucherCode: input.voucherCode,
+      voucherDiscount: voucherDiscount || undefined,
+      pointsUsed: pointsUsed || undefined,
+      finalPrice,
+      paymentDeadline: new Date(now.getTime() + 2 * 60 * 60 * 1000),
+      transactionId: transaction.id,
+    });
+
+    return transaction;
   });
 }
 
@@ -148,14 +226,19 @@ export async function findAll(userId: string, query: TransactionQuery) {
       take: limit,
       orderBy: { createdAt: "desc" },
       include: {
-        event: { select: { id: true, name: true, venue: true, startDate: true } },
+        event: {
+          select: { id: true, name: true, venue: true, startDate: true },
+        },
         items: { include: { ticketType: { select: { name: true } } } },
       },
     }),
     prisma.transaction.count({ where }),
   ]);
 
-  return { transactions, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  return {
+    transactions,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 }
 
 export async function findById(transactionId: string, userId: string) {
@@ -169,7 +252,9 @@ export async function findById(transactionId: string, userId: string) {
   if (!transaction) throw new ApiError(404, "Transaction not found");
 
   if (transaction.userId !== userId) {
-    const event = await prisma.event.findUnique({ where: { id: transaction.eventId } });
+    const event = await prisma.event.findUnique({
+      where: { id: transaction.eventId },
+    });
     if (!event || event.organizerId !== userId) {
       throw new ApiError(403, "Not authorized to view this transaction");
     }
@@ -178,12 +263,20 @@ export async function findById(transactionId: string, userId: string) {
   return transaction;
 }
 
-export async function uploadPaymentProof(transactionId: string, userId: string, paymentProofUrl: string) {
-  const trx = await prisma.transaction.findUnique({ where: { id: transactionId } });
+export async function uploadPaymentProof(
+  transactionId: string,
+  userId: string,
+  paymentProofUrl: string,
+) {
+  const trx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+  });
   if (!trx) throw new ApiError(404, "Transaction not found");
   if (trx.userId !== userId) throw new ApiError(403, "Not your transaction");
-  if (trx.status !== "WAITING_FOR_PAYMENT") throw new ApiError(400, "Transaction is not waiting for payment");
-  if (new Date() > trx.paymentDeadline) throw new ApiError(400, "Payment deadline has passed");
+  if (trx.status !== "WAITING_FOR_PAYMENT")
+    throw new ApiError(400, "Transaction is not waiting for payment");
+  if (new Date() > trx.paymentDeadline)
+    throw new ApiError(400, "Payment deadline has passed");
 
   return await prisma.transaction.update({
     where: { id: transactionId },
@@ -192,44 +285,107 @@ export async function uploadPaymentProof(transactionId: string, userId: string, 
   });
 }
 
-export async function acceptTransaction(transactionId: string, organizerId: string) {
+export async function acceptTransaction(
+  transactionId: string,
+  organizerId: string,
+) {
   const trx = await prisma.transaction.findUnique({
     where: { id: transactionId },
     include: { event: true },
   });
   if (!trx) throw new ApiError(404, "Transaction not found");
-  if (trx.event.organizerId !== organizerId) throw new ApiError(403, "Not your event");
-  if (trx.status !== "WAITING_FOR_CONFIRMATION") throw new ApiError(400, "Transaction is not waiting for confirmation");
+  if (trx.event.organizerId !== organizerId)
+    throw new ApiError(403, "Not your event");
+  if (trx.status !== "WAITING_FOR_CONFIRMATION")
+    throw new ApiError(400, "Transaction is not waiting for confirmation");
 
-  return await prisma.transaction.update({
+  const result = await prisma.transaction.update({
     where: { id: transactionId },
     data: { status: "DONE" },
-    include: TRANSACTION_INCLUDE,
+    include: {
+      ...TRANSACTION_INCLUDE,
+      user: { select: { id: true, name: true, email: true } },
+    },
   });
+
+  sendTransactionAcceptedEmail({
+    customerEmail: result.user.email,
+    customerName: result.user.name,
+    invoiceNumber: result.invoiceNumber,
+    eventName: trx.event.name,
+    eventDate: trx.event.startDate,
+    eventVenue: `${trx.event.venue}`,
+    items: result.items.map((i) => ({
+      ticketName: i.ticketType.name,
+      quantity: i.quantity,
+    })),
+    finalPrice: result.finalPrice,
+    transactionId: result.id,
+  });
+
+  return result;
 }
 
-export async function rejectTransaction(transactionId: string, organizerId: string) {
+export async function rejectTransaction(
+  transactionId: string,
+  organizerId: string,
+) {
   const trx = await prisma.transaction.findUnique({
     where: { id: transactionId },
-    include: { event: true },
+    include: { event: true, items: { include: { ticketType: true } } },
   });
   if (!trx) throw new ApiError(404, "Transaction not found");
-  if (trx.event.organizerId !== organizerId) throw new ApiError(403, "Not your event");
-  if (trx.status !== "WAITING_FOR_CONFIRMATION") throw new ApiError(400, "Transaction is not waiting for confirmation");
+  if (trx.event.organizerId !== organizerId)
+    throw new ApiError(403, "Not your event");
+  if (trx.status !== "WAITING_FOR_CONFIRMATION")
+    throw new ApiError(400, "Transaction is not waiting for confirmation");
 
-  return await rollbackTransaction(transactionId, "REJECTED");
+  const userInfo = await prisma.user.findUniqueOrThrow({
+    where: { id: trx.userId },
+    select: { email: true, name: true },
+  });
+
+  const result = await rollbackTransaction(transactionId, "REJECTED");
+
+  sendTransactionRejectedEmail({
+    customerEmail: userInfo.email,
+    customerName: userInfo.name,
+    invoiceNumber: trx.invoiceNumber,
+    eventName: trx.event.name,
+    eventDate: trx.event.startDate,
+    eventVenue: `${trx.event.venue}`,
+    items: trx.items.map((i) => ({
+      ticketName: i.ticketType?.name || "Ticket",
+      quantity: i.quantity,
+    })),
+    voucherCode: result.voucher?.code,
+    pointsUsed:
+      trx.pointsUsed > 0
+        ? `Rp ${trx.pointsUsed.toLocaleString("id-ID")}`
+        : undefined,
+    couponCode: result.coupon?.code,
+    transactionId: result.id,
+  });
+
+  return result;
 }
 
 export async function cancelTransaction(transactionId: string, userId: string) {
-  const trx = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  const trx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+  });
   if (!trx) throw new ApiError(404, "Transaction not found");
   if (trx.userId !== userId) throw new ApiError(403, "Not your transaction");
-  if (trx.status !== "WAITING_FOR_PAYMENT") throw new ApiError(400, "Can only cancel transactions waiting for payment");
+  if (trx.status !== "WAITING_FOR_PAYMENT")
+    throw new ApiError(400, "Can only cancel transactions waiting for payment");
 
   return await rollbackTransaction(transactionId, "CANCELED");
 }
 
-export async function rollbackTransaction(transactionId: string, newStatus: "REJECTED" | "EXPIRED" | "CANCELED") {
+export async function rollbackTransaction(
+  transactionId: string,
+  newStatus: "REJECTED" | "EXPIRED" | "CANCELED",
+) {
   return await prisma.$transaction(async (tx) => {
     const trx = await tx.transaction.findUniqueOrThrow({
       where: { id: transactionId },
@@ -261,19 +417,28 @@ export async function rollbackTransaction(transactionId: string, newStatus: "REJ
       let remaining = trx.pointsUsed;
       for (const point of usedPoints) {
         if (remaining <= 0) break;
-        await tx.point.update({ where: { id: point.id }, data: { isUsed: false } });
+        await tx.point.update({
+          where: { id: point.id },
+          data: { isUsed: false },
+        });
         remaining -= point.amount;
       }
     }
 
     // Restore coupon
     if (trx.couponId) {
-      await tx.coupon.update({ where: { id: trx.couponId }, data: { isUsed: false } });
+      await tx.coupon.update({
+        where: { id: trx.couponId },
+        data: { isUsed: false },
+      });
     }
 
     // Restore voucher
     if (trx.voucherId) {
-      await tx.voucher.update({ where: { id: trx.voucherId }, data: { usedCount: { decrement: 1 } } });
+      await tx.voucher.update({
+        where: { id: trx.voucherId },
+        data: { usedCount: { decrement: 1 } },
+      });
     }
 
     return await tx.transaction.update({
@@ -284,7 +449,10 @@ export async function rollbackTransaction(transactionId: string, newStatus: "REJ
   });
 }
 
-export async function getOrganizerTransactions(organizerId: string, query: TransactionQuery) {
+export async function getOrganizerTransactions(
+  organizerId: string,
+  query: TransactionQuery,
+) {
   const page = parseInt(query.page || "1");
   const limit = parseInt(query.limit || "10");
   const skip = (page - 1) * limit;
@@ -306,5 +474,8 @@ export async function getOrganizerTransactions(organizerId: string, query: Trans
     prisma.transaction.count({ where }),
   ]);
 
-  return { transactions, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  return {
+    transactions,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 }
