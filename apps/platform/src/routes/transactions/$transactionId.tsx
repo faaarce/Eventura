@@ -393,7 +393,7 @@ function TransactionDetailPage() {
             <div className="mt-4 flex gap-2">
               <button
                 onClick={handleUpload}
-                disabled={uploading || !proofUrl.trim()}
+                disabled={uploading || !proofFile}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-[#0a0a0a] transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {uploading ? (
