@@ -25,7 +25,11 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(6, "Password baru minimal 6 karakter"),
 });
 
-export async function register(req: Request, res: Response, next: NextFunction) {
+export async function register(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const data = registerSchema.parse(req.body);
     const result = await authService.register(data);
@@ -45,7 +49,11 @@ export async function login(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function getProfile(req: Request, res: Response, next: NextFunction) {
+export async function getProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const result = await authService.getProfile(req.user!.userId);
     res.json({ success: true, data: result });
@@ -54,7 +62,11 @@ export async function getProfile(req: Request, res: Response, next: NextFunction
   }
 }
 
-export async function updateProfile(req: Request, res: Response, next: NextFunction) {
+export async function updateProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const data = updateProfileSchema.parse(req.body);
     const result = await authService.updateProfile(req.user!.userId, data);
@@ -64,10 +76,55 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
   }
 }
 
-export async function changePassword(req: Request, res: Response, next: NextFunction) {
+export async function changePassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const data = changePasswordSchema.parse(req.body);
     const result = await authService.changePassword(req.user!.userId, data);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+  newPassword: z.string().min(6, "Password minimal 6 karakter"),
+});
+
+// 2. Tambah handler functions:
+export async function forgotPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const data = forgotPasswordSchema.parse(req.body);
+    const result = await authService.forgotPassword(data.email);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPassword(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const data = resetPasswordSchema.parse(req.body);
+    const result = await authService.resetPassword(
+      data.token,
+      data.newPassword,
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

@@ -286,7 +286,7 @@ interface ReviewListData {
 
 export async function fetchEventReviews(
   eventId: string,
-  params: { page?: number; limit?: number } = {}
+  params: { page?: number; limit?: number } = {},
 ): Promise<ReviewListData> {
   const searchParams: Record<string, string> = {};
   if (params.page) searchParams.page = String(params.page);
@@ -300,7 +300,7 @@ export async function fetchEventReviews(
 
 export async function createReview(
   eventId: string,
-  input: { rating: number; comment?: string }
+  input: { rating: number; comment?: string },
 ): Promise<ApiReview> {
   const res = await api
     .post(`reviews/events/${eventId}`, { json: input })
@@ -330,7 +330,7 @@ export interface ApiDashboardStats {
 // ============ Dashboard helpers ============
 
 export async function fetchDashboardStats(
-  params: { year?: number; month?: number; day?: number } = {}
+  params: { year?: number; month?: number; day?: number } = {},
 ): Promise<ApiDashboardStats> {
   const searchParams: Record<string, string> = {};
   if (params.year) searchParams.year = String(params.year);
@@ -389,7 +389,7 @@ interface CreateEventInput {
 // ============ Organizer event helpers ============
 
 export async function fetchMyEvents(
-  params: { page?: number; limit?: number } = {}
+  params: { page?: number; limit?: number } = {},
 ): Promise<OrganizerEventListData> {
   const searchParams: Record<string, string> = {};
   if (params.page) searchParams.page = String(params.page);
@@ -402,7 +402,7 @@ export async function fetchMyEvents(
 }
 
 export async function createEvent(
-  input: CreateEventInput
+  input: CreateEventInput,
 ): Promise<ApiOrganizerEvent> {
   const res = await api
     .post("events", { json: input })
@@ -452,7 +452,7 @@ interface OrganizerTransactionListData {
 // ============ Organizer transaction helpers ============
 
 export async function fetchOrganizerTransactions(
-  params: { status?: TransactionStatus; page?: number; limit?: number } = {}
+  params: { status?: TransactionStatus; page?: number; limit?: number } = {},
 ): Promise<OrganizerTransactionListData> {
   const searchParams: Record<string, string> = {};
   if (params.status) searchParams.status = params.status;
@@ -466,7 +466,7 @@ export async function fetchOrganizerTransactions(
 }
 
 export async function acceptTransaction(
-  transactionId: string
+  transactionId: string,
 ): Promise<ApiTransaction> {
   const res = await api
     .patch(`transactions/${transactionId}/accept`)
@@ -475,7 +475,7 @@ export async function acceptTransaction(
 }
 
 export async function rejectTransaction(
-  transactionId: string
+  transactionId: string,
 ): Promise<ApiTransaction> {
   const res = await api
     .patch(`transactions/${transactionId}/reject`)
@@ -508,7 +508,7 @@ interface CreateVoucherInput {
 // ============ Voucher helpers ============
 
 export async function fetchEventVouchers(
-  eventId: string
+  eventId: string,
 ): Promise<ApiVoucher[]> {
   const res = await api
     .get(`events/${eventId}/vouchers`)
@@ -518,7 +518,7 @@ export async function fetchEventVouchers(
 
 export async function createVoucher(
   eventId: string,
-  input: CreateVoucherInput
+  input: CreateVoucherInput,
 ): Promise<ApiVoucher> {
   const res = await api
     .post(`events/${eventId}/vouchers`, { json: input })
@@ -556,7 +556,7 @@ interface AttendeeListData {
 
 export async function fetchEventAttendees(
   eventId: string,
-  params: { page?: number; limit?: number } = {}
+  params: { page?: number; limit?: number } = {},
 ): Promise<AttendeeListData> {
   const searchParams: Record<string, string> = {};
   if (params.page) searchParams.page = String(params.page);
@@ -568,26 +568,34 @@ export async function fetchEventAttendees(
   return res.data;
 }
 
-
-export async function updateProfile(
-  input: { name?: string; profileImage?: string }
-): Promise<{ id: string; name: string; email: string; role: string; referralCode: string; profileImage: string | null; createdAt: string }> {
+export async function updateProfile(input: {
+  name?: string;
+  profileImage?: string;
+}): Promise<{
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  referralCode: string;
+  profileImage: string | null;
+  createdAt: string;
+}> {
   const res = await api
     .patch("auth/profile", { json: input })
     .json<ApiResponse<any>>();
   return res.data;
 }
- 
-export async function changePassword(
-  input: { currentPassword: string; newPassword: string }
-): Promise<{ message: string }> {
+
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ message: string }> {
   const res = await api
     .patch("auth/change-password", { json: input })
     .json<ApiResponse<{ message: string }>>();
   return res.data;
 }
- 
- 
+
 interface UpdateEventInput {
   name?: string;
   description?: string;
@@ -598,14 +606,32 @@ interface UpdateEventInput {
   endDate?: string;
   imageUrl?: string;
 }
- 
+
 export async function updateEvent(
   eventId: string,
-  input: UpdateEventInput
+  input: UpdateEventInput,
 ): Promise<ApiOrganizerEvent> {
   const res = await api
     .put(`events/${eventId}`, { json: input })
     .json<ApiResponse<ApiOrganizerEvent>>();
   return res.data;
 }
- 
+
+export async function forgotPassword(
+  email: string,
+): Promise<{ message: string }> {
+  const res = await api
+    .post("auth/forgot-password", { json: { email } })
+    .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  const res = await api
+    .post("auth/reset-password", { json: { token, newPassword } })
+    .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}

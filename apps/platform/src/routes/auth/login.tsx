@@ -125,7 +125,7 @@ function LoginPage() {
                   Password
                 </label>
                 <Link
-                  to="/auth/login"
+                  to="/auth/forgot-password"
                   className="text-xs font-semibold text-white/30 no-underline hover:text-white/50 transition-colors"
                 >
                   Lupa password?

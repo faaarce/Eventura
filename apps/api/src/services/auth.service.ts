@@ -1,8 +1,9 @@
 import { prisma } from "../utils/prisma.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "node:crypto";
 import { ApiError, generateReferralCode } from "../utils/helpers.js";
-import { sendWelcomeEmail } from "../utils/mail.js";
+import { sendWelcomeEmail, sendResetPasswordEmail } from "../utils/mail.js";
 
 interface RegisterInput {
   name: string;
@@ -202,4 +203,54 @@ export async function changePassword(
   });
 
   return { message: "Password berhasil diubah" };
+}
+
+export async function forgotPassword(email: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Selalu return success biar gak bisa enumerate email
+  if (!user)
+    return { message: "Jika email terdaftar, link reset sudah dikirim" };
+
+  // Generate token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { resetToken, resetTokenExpiry },
+  });
+
+  // Send email (fire-and-forget)
+  sendResetPasswordEmail({
+    email: user.email,
+    name: user.name,
+    resetToken,
+  });
+
+  return { message: "Jika email terdaftar, link reset sudah dikirim" };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const user = await prisma.user.findFirst({
+    where: {
+      resetToken: token,
+      resetTokenExpiry: { gt: new Date() },
+    },
+  });
+
+  if (!user) throw new ApiError(400, "Token tidak valid atau sudah expired");
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashed,
+      resetToken: null,
+      resetTokenExpiry: null,
+    },
+  });
+
+  return { message: "Password berhasil direset. Silakan login." };
 }

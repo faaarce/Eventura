@@ -43,14 +43,16 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  referredBy   User?  @relation("Referrals", fields: [referredById], references: [id])
-  referrals    User[] @relation("Referrals")
+  referredBy User?  @relation("Referrals", fields: [referredById], references: [id])
+  referrals  User[] @relation("Referrals")
 
-  events       Event[]
-  transactions Transaction[]
-  reviews      Review[]
-  points       Point[]
-  coupons      Coupon[]
+  events           Event[]
+  transactions     Transaction[]
+  reviews          Review[]
+  points           Point[]
+  coupons          Coupon[]
+  resetToken       String?       @map("reset_token")
+  resetTokenExpiry DateTime?     @map("reset_token_expiry")
 
   @@map("users")
 }
@@ -156,10 +158,10 @@ model Transaction {
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
-  user    User     @relation(fields: [userId], references: [id])
-  event   Event    @relation(fields: [eventId], references: [id])
-  voucher Voucher? @relation(fields: [voucherId], references: [id])
-  coupon  Coupon?  @relation(fields: [couponId], references: [id])
+  user    User              @relation(fields: [userId], references: [id])
+  event   Event             @relation(fields: [eventId], references: [id])
+  voucher Voucher?          @relation(fields: [voucherId], references: [id])
+  coupon  Coupon?           @relation(fields: [couponId], references: [id])
   items   TransactionItem[]
 
   @@index([status])

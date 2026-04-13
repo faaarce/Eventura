@@ -30,7 +30,7 @@ export async function sendMail({
     const templatePath = path.join(
       __dirname,
       "./templates",
-      `${templateName}.hbs`
+      `${templateName}.hbs`,
     );
     const templateSource = await fs.readFile(templatePath, "utf-8");
     const compiledTemplate = handlebars.compile(templateSource);
@@ -48,7 +48,6 @@ export async function sendMail({
     console.error(`[MAIL] ✗ Failed to send "${subject}" to ${to}:`, err);
   }
 }
-
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
@@ -123,9 +122,7 @@ export async function sendTransactionCreatedEmail(data: {
       voucherDiscount: data.voucherDiscount
         ? formatPrice(data.voucherDiscount)
         : undefined,
-      pointsUsed: data.pointsUsed
-        ? formatPrice(data.pointsUsed)
-        : undefined,
+      pointsUsed: data.pointsUsed ? formatPrice(data.pointsUsed) : undefined,
       finalPrice: formatPrice(data.finalPrice),
       paymentDeadline: formatDate(data.paymentDeadline),
       transactionId: data.transactionId,
@@ -184,6 +181,24 @@ export async function sendTransactionRejectedEmail(data: {
       ...data,
       eventDate: formatDate(data.eventDate),
       baseUrl: BASE_URL,
+    },
+  });
+}
+
+export async function sendResetPasswordEmail(data: {
+  email: string;
+  name: string;
+  resetToken: string;
+}) {
+  const resetUrl = `${BASE_URL}/auth/reset-password?token=${data.resetToken}`;
+
+  await sendMail({
+    to: data.email,
+    subject: "Reset Password — Eventura",
+    templateName: "reset-password",
+    context: {
+      name: data.name,
+      resetUrl,
     },
   });
 }
