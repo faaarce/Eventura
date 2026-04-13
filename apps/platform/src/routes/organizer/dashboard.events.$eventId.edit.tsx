@@ -10,7 +10,7 @@ import {
 import { fetchEventById, updateEvent } from "@/utils/api";
 
 export const Route = createFileRoute(
-  "/organizer/dashboard/events/$eventId/edit"
+  "/organizer/dashboard/events/$eventId/edit",
 )({
   component: EditEventPage,
   ssr: false,
@@ -57,6 +57,10 @@ function EditEventPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    event.imageUrl || null,
+  );
 
   const updateField = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -89,16 +93,19 @@ function EditEventPage() {
     setError("");
 
     try {
-      await updateEvent(event.id, {
-        name: form.name,
-        description: form.description,
-        category: form.category,
-        location: form.location,
-        venue: form.venue,
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
-        imageUrl: form.imageUrl || undefined,
-      });
+      await updateEvent(
+        event.id,
+        {
+          name: form.name,
+          description: form.description,
+          category: form.category,
+          location: form.location,
+          venue: form.venue,
+          startDate: new Date(form.startDate).toISOString(),
+          endDate: new Date(form.endDate).toISOString(),
+        },
+        imageFile || undefined,
+      );
 
       navigate({ to: "/organizer/dashboard/events" });
     } catch (err: any) {
@@ -135,9 +142,7 @@ function EditEventPage() {
       <h1 className="display-title text-2xl font-bold text-white sm:text-3xl">
         Edit Event
       </h1>
-      <p className="mt-1 text-sm text-white/50">
-        Update detail event kamu
-      </p>
+      <p className="mt-1 text-sm text-white/50">Update detail event kamu</p>
 
       {/* Ticket types info (read-only) */}
       <div className="mt-4 rounded-xl border border-white/8 bg-white/4 px-4 py-3 text-xs text-white/40">
@@ -185,17 +190,44 @@ function EditEventPage() {
               />
             </FormField>
 
-            <FormField label="URL Gambar (opsional)">
-              <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30">
-                <ImageIcon size={16} className="shrink-0 text-white/30" />
+            <FormField label="Gambar Event (opsional)">
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/15 bg-white/3 px-4 py-6 transition-all hover:border-white/30 hover:bg-white/5">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-32 rounded-lg"
+                  />
+                ) : (
+                  <>
+                    <ImageIcon size={24} className="text-white/30" />
+                    <p className="mt-2 text-sm font-semibold text-white/50">
+                      Klik untuk upload gambar
+                    </p>
+                    <p className="mt-1 text-xs text-white/30">
+                      JPG, PNG, WebP — max 5MB
+                    </p>
+                  </>
+                )}
                 <input
-                  type="url"
-                  placeholder="https://..."
-                  value={form.imageUrl}
-                  onChange={(e) => updateField("imageUrl", e.target.value)}
-                  className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
                 />
-              </div>
+              </label>
+              {imageFile && (
+                <p className="mt-2 text-xs text-white/40">
+                  {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(1)}{" "}
+                  MB)
+                </p>
+              )}
             </FormField>
           </div>
         </section>

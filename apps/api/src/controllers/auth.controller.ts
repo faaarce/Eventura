@@ -69,7 +69,12 @@ export async function updateProfile(
 ) {
   try {
     const data = updateProfileSchema.parse(req.body);
-    const result = await authService.updateProfile(req.user!.userId, data);
+    const file = req.file; // optional profile image
+    const result = await authService.updateProfile(
+      req.user!.userId,
+      data,
+      file,
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

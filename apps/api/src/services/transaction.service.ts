@@ -6,6 +6,8 @@ import {
   sendTransactionRejectedEmail,
 } from "../utils/mail.js";
 
+import { uploadImage } from "../utils/cloudinary.js";
+
 interface CreateTransactionInput {
   eventId: string;
   items: { ticketTypeId: string; quantity: number }[];
@@ -266,7 +268,7 @@ export async function findById(transactionId: string, userId: string) {
 export async function uploadPaymentProof(
   transactionId: string,
   userId: string,
-  paymentProofUrl: string,
+  file: Express.Multer.File,
 ) {
   const trx = await prisma.transaction.findUnique({
     where: { id: transactionId },
@@ -278,9 +280,12 @@ export async function uploadPaymentProof(
   if (new Date() > trx.paymentDeadline)
     throw new ApiError(400, "Payment deadline has passed");
 
+  // Upload to Cloudinary
+  const { secure_url } = await uploadImage(file, "eventura/payment-proofs");
+
   return await prisma.transaction.update({
     where: { id: transactionId },
-    data: { paymentProof: paymentProofUrl, status: "WAITING_FOR_CONFIRMATION" },
+    data: { paymentProof: secure_url, status: "WAITING_FOR_CONFIRMATION" },
     include: TRANSACTION_INCLUDE,
   });
 }

@@ -167,12 +167,13 @@ export async function fetchTransactionById(
 
 export async function uploadPaymentProof(
   transactionId: string,
-  paymentProofUrl: string,
+  file: File,
 ): Promise<ApiTransaction> {
+  const formData = new FormData();
+  formData.append("paymentProof", file);
+
   const res = await api
-    .patch(`transactions/${transactionId}/payment-proof`, {
-      json: { paymentProof: paymentProofUrl },
-    })
+    .patch(`transactions/${transactionId}/payment-proof`, { body: formData })
     .json<ApiResponse<ApiTransaction>>();
   return res.data;
 }
@@ -403,9 +404,22 @@ export async function fetchMyEvents(
 
 export async function createEvent(
   input: CreateEventInput,
+  file?: File
 ): Promise<ApiOrganizerEvent> {
+  const formData = new FormData();
+  formData.append("name", input.name);
+  formData.append("description", input.description);
+  formData.append("category", input.category);
+  formData.append("location", input.location);
+  formData.append("venue", input.venue);
+  formData.append("startDate", input.startDate);
+  formData.append("endDate", input.endDate);
+  formData.append("isFree", String(input.isFree));
+  formData.append("ticketTypes", JSON.stringify(input.ticketTypes));
+  if (file) formData.append("image", file);
+ 
   const res = await api
-    .post("events", { json: input })
+    .post("events", { body: formData })
     .json<ApiResponse<ApiOrganizerEvent>>();
   return res.data;
 }
@@ -568,10 +582,10 @@ export async function fetchEventAttendees(
   return res.data;
 }
 
-export async function updateProfile(input: {
-  name?: string;
-  profileImage?: string;
-}): Promise<{
+export async function updateProfile(
+  input: { name?: string },
+  file?: File,
+): Promise<{
   id: string;
   name: string;
   email: string;
@@ -580,8 +594,12 @@ export async function updateProfile(input: {
   profileImage: string | null;
   createdAt: string;
 }> {
+  const formData = new FormData();
+  if (input.name) formData.append("name", input.name);
+  if (file) formData.append("profileImage", file);
+
   const res = await api
-    .patch("auth/profile", { json: input })
+    .patch("auth/profile", { body: formData })
     .json<ApiResponse<any>>();
   return res.data;
 }
@@ -610,7 +628,26 @@ interface UpdateEventInput {
 export async function updateEvent(
   eventId: string,
   input: UpdateEventInput,
+  file?: File
 ): Promise<ApiOrganizerEvent> {
+  if (file) {
+    const formData = new FormData();
+    if (input.name) formData.append("name", input.name);
+    if (input.description) formData.append("description", input.description);
+    if (input.category) formData.append("category", input.category);
+    if (input.location) formData.append("location", input.location);
+    if (input.venue) formData.append("venue", input.venue);
+    if (input.startDate) formData.append("startDate", input.startDate);
+    if (input.endDate) formData.append("endDate", input.endDate);
+    formData.append("image", file);
+ 
+    const res = await api
+      .put(`events/${eventId}`, { body: formData })
+      .json<ApiResponse<ApiOrganizerEvent>>();
+    return res.data;
+  }
+ 
+  // Tanpa file — kirim JSON biasa
   const res = await api
     .put(`events/${eventId}`, { json: input })
     .json<ApiResponse<ApiOrganizerEvent>>();
