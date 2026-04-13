@@ -1,5 +1,6 @@
 import { prisma } from "../utils/prisma.js";
 import { ApiError } from "../utils/helpers.js";
+import { uploadImage, deleteImage } from "../utils/cloudinary.js";
 
 interface CreateEventInput {
   name: string;
@@ -25,14 +26,27 @@ interface EventQuery {
   sortOrder?: string;
 }
 
-export async function create(organizerId: string, input: CreateEventInput) {
+export async function create(
+  organizerId: string,
+  input: CreateEventInput,
+  file?: Express.Multer.File,
+) {
   const startDate = new Date(input.startDate);
   const endDate = new Date(input.endDate);
 
-  if (startDate >= endDate) throw new ApiError(400, "End date must be after start date");
-  if (startDate <= new Date()) throw new ApiError(400, "Start date must be in the future");
+  if (startDate >= endDate)
+    throw new ApiError(400, "End date must be after start date");
+  if (startDate <= new Date())
+    throw new ApiError(400, "Start date must be in the future");
   if (input.isFree && input.ticketTypes.some((t) => t.price > 0)) {
     throw new ApiError(400, "Free events cannot have paid ticket types");
+  }
+
+  // Upload image kalau ada file
+  let imageUrl = input.imageUrl;
+  if (file) {
+    const { secure_url } = await uploadImage(file, "eventura/events");
+    imageUrl = secure_url;
   }
 
   return await prisma.event.create({
@@ -45,7 +59,7 @@ export async function create(organizerId: string, input: CreateEventInput) {
       startDate,
       endDate,
       isFree: input.isFree,
-      imageUrl: input.imageUrl,
+      imageUrl,
       organizerId,
       ticketTypes: {
         create: input.ticketTypes.map((t) => ({
@@ -78,8 +92,10 @@ export async function findAll(query: EventQuery) {
       { description: { contains: query.search, mode: "insensitive" } },
     ];
   }
-  if (query.category) where.category = { equals: query.category, mode: "insensitive" };
-  if (query.location) where.location = { contains: query.location, mode: "insensitive" };
+  if (query.category)
+    where.category = { equals: query.category, mode: "insensitive" };
+  if (query.location)
+    where.location = { contains: query.location, mode: "insensitive" };
   if (query.isFree !== undefined) where.isFree = query.isFree === "true";
 
   const [events, total] = await Promise.all([
@@ -96,7 +112,10 @@ export async function findAll(query: EventQuery) {
     prisma.event.count({ where }),
   ]);
 
-  return { events, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  return {
+    events,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 }
 
 export async function findById(id: string) {
@@ -104,17 +123,40 @@ export async function findById(id: string) {
     where: { id },
     include: {
       ticketTypes: true,
-      organizer: { select: { id: true, name: true, profileImage: true, email: true } },
+      organizer: {
+        select: { id: true, name: true, profileImage: true, email: true },
+      },
     },
   });
   if (!event) throw new ApiError(404, "Event not found");
   return event;
 }
 
-export async function update(eventId: string, organizerId: string, input: Partial<CreateEventInput>) {
+export async function update(
+  eventId: string,
+  organizerId: string,
+  input: Partial<CreateEventInput>,
+  file?: Express.Multer.File,
+) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) throw new ApiError(404, "Event not found");
-  if (event.organizerId !== organizerId) throw new ApiError(403, "You can only edit your own events");
+  if (event.organizerId !== organizerId)
+    throw new ApiError(403, "You can only edit your own events");
+
+  // Upload new image kalau ada file
+  let imageUrl = input.imageUrl;
+  if (file) {
+    // Hapus gambar lama kalau ada
+    if (event.imageUrl) {
+      try {
+        await deleteImage(event.imageUrl);
+      } catch {
+        // Ignore
+      }
+    }
+    const { secure_url } = await uploadImage(file, "eventura/events");
+    imageUrl = secure_url;
+  }
 
   return await prisma.event.update({
     where: { id: eventId },
@@ -126,7 +168,7 @@ export async function update(eventId: string, organizerId: string, input: Partia
       ...(input.venue && { venue: input.venue }),
       ...(input.startDate && { startDate: new Date(input.startDate) }),
       ...(input.endDate && { endDate: new Date(input.endDate) }),
-      ...(input.imageUrl && { imageUrl: input.imageUrl }),
+      ...(imageUrl !== undefined && { imageUrl }),
     },
     include: {
       ticketTypes: true,
@@ -138,13 +180,17 @@ export async function update(eventId: string, organizerId: string, input: Partia
 export async function remove(eventId: string, organizerId: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) throw new ApiError(404, "Event not found");
-  if (event.organizerId !== organizerId) throw new ApiError(403, "You can only delete your own events");
+  if (event.organizerId !== organizerId)
+    throw new ApiError(403, "You can only delete your own events");
 
   await prisma.event.delete({ where: { id: eventId } });
   return { message: "Event deleted successfully" };
 }
 
-export async function getOrganizerEvents(organizerId: string, query: EventQuery) {
+export async function getOrganizerEvents(
+  organizerId: string,
+  query: EventQuery,
+) {
   const page = parseInt(query.page || "1");
   const limit = parseInt(query.limit || "10");
   const skip = (page - 1) * limit;
@@ -160,5 +206,8 @@ export async function getOrganizerEvents(organizerId: string, query: EventQuery)
     prisma.event.count({ where: { organizerId } }),
   ]);
 
-  return { events, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  return {
+    events,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 }

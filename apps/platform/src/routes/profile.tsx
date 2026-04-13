@@ -149,6 +149,8 @@ function ProfilePage() {
 
   const navigate = useNavigate();
   const [profile, setProfile] = useState(initialProfile);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">(
@@ -192,7 +194,6 @@ function ProfilePage() {
     navigate({ to: "/auth/login" });
   };
 
-  // ========== Edit Profile ==========
   const handleEditSubmit = async () => {
     if (!editForm.name || editForm.name.length < 2) {
       setEditError("Nama minimal 2 karakter");
@@ -204,15 +205,17 @@ function ProfilePage() {
     setEditSuccess("");
 
     try {
-      const updated = await updateProfile({
-        name: editForm.name,
-        profileImage: editForm.profileImage || undefined,
-      });
+      const updated = await updateProfile(
+        { name: editForm.name },
+        profileFile || undefined,
+      );
       setProfile((prev) => ({
         ...prev,
         name: updated.name,
         profileImage: updated.profileImage,
       }));
+      setProfileFile(null);
+      setProfilePreview(null);
       setEditSuccess("Profil berhasil diupdate!");
       setTimeout(() => {
         setEditSuccess("");
@@ -339,9 +342,7 @@ function ProfilePage() {
 
         {/* ========== Edit Profile Section ========== */}
         {editOpen && (
-          <section
-            className="rise-in mt-6 rounded-2xl border border-white/12 bg-white/5 p-5 sm:p-6"
-          >
+          <section className="rise-in mt-6 rounded-2xl border border-white/12 bg-white/5 p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white/70">
                 <Pencil size={14} />
@@ -367,7 +368,10 @@ function ProfilePage() {
                     type="text"
                     value={editForm.name}
                     onChange={(e) => {
-                      setEditForm((prev) => ({ ...prev, name: e.target.value }));
+                      setEditForm((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }));
                       setEditError("");
                     }}
                     className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
@@ -378,31 +382,53 @@ function ProfilePage() {
               {/* Profile Image URL */}
               <div>
                 <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                  URL Foto Profil <span className="text-white/25 normal-case">(opsional)</span>
+                  Foto Profil
                 </label>
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30">
-                  <ImageIcon size={16} className="shrink-0 text-white/30" />
+                <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-white/12 bg-white/5 px-3.5 py-3 transition-all hover:border-white/30">
+                  {/* Preview */}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10">
+                    {profilePreview || profile.profileImage ? (
+                      <img
+                        src={profilePreview || profile.profileImage || ""}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User size={20} className="text-white/30" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white/70">
+                      {profileFile ? profileFile.name : "Pilih foto baru"}
+                    </p>
+                    <p className="text-xs text-white/30">
+                      JPG, PNG, WebP — max 2MB
+                    </p>
+                  </div>
                   <input
-                    type="url"
-                    placeholder="https://..."
-                    value={editForm.profileImage}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
                     onChange={(e) => {
-                      setEditForm((prev) => ({
-                        ...prev,
-                        profileImage: e.target.value,
-                      }));
-                      setEditError("");
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setProfileFile(file);
+                        setProfilePreview(URL.createObjectURL(file));
+                      }
                     }}
-                    className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
                   />
-                </div>
+                </label>
               </div>
 
               {editError && (
-                <p className="text-xs font-semibold text-red-400">{editError}</p>
+                <p className="text-xs font-semibold text-red-400">
+                  {editError}
+                </p>
               )}
               {editSuccess && (
-                <p className="text-xs font-semibold text-emerald-400">{editSuccess}</p>
+                <p className="text-xs font-semibold text-emerald-400">
+                  {editSuccess}
+                </p>
               )}
 
               <button
@@ -428,7 +454,11 @@ function ProfilePage() {
                   setPwOpen(!pwOpen);
                   setPwError("");
                   setPwSuccess("");
-                  setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                  setPwForm({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  });
                 }}
                 className="flex items-center gap-2 text-sm font-semibold text-white/60 transition-colors hover:text-white"
               >
@@ -446,7 +476,10 @@ function ProfilePage() {
                       type="password"
                       value={pwForm.currentPassword}
                       onChange={(e) => {
-                        setPwForm((prev) => ({ ...prev, currentPassword: e.target.value }));
+                        setPwForm((prev) => ({
+                          ...prev,
+                          currentPassword: e.target.value,
+                        }));
                         setPwError("");
                       }}
                       className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
@@ -462,7 +495,10 @@ function ProfilePage() {
                       type="password"
                       value={pwForm.newPassword}
                       onChange={(e) => {
-                        setPwForm((prev) => ({ ...prev, newPassword: e.target.value }));
+                        setPwForm((prev) => ({
+                          ...prev,
+                          newPassword: e.target.value,
+                        }));
                         setPwError("");
                       }}
                       className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
@@ -478,7 +514,10 @@ function ProfilePage() {
                       type="password"
                       value={pwForm.confirmPassword}
                       onChange={(e) => {
-                        setPwForm((prev) => ({ ...prev, confirmPassword: e.target.value }));
+                        setPwForm((prev) => ({
+                          ...prev,
+                          confirmPassword: e.target.value,
+                        }));
                         setPwError("");
                       }}
                       className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
@@ -487,10 +526,14 @@ function ProfilePage() {
                   </div>
 
                   {pwError && (
-                    <p className="text-xs font-semibold text-red-400">{pwError}</p>
+                    <p className="text-xs font-semibold text-red-400">
+                      {pwError}
+                    </p>
                   )}
                   {pwSuccess && (
-                    <p className="text-xs font-semibold text-emerald-400">{pwSuccess}</p>
+                    <p className="text-xs font-semibold text-emerald-400">
+                      {pwSuccess}
+                    </p>
                   )}
 
                   <button
@@ -707,13 +750,22 @@ function ProfilePage() {
         <div className="page-wrap flex flex-col items-center gap-4 py-6 text-sm text-white/30 sm:flex-row sm:justify-between sm:py-8">
           <p>© 2026 Eventura</p>
           <div className="flex gap-6">
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Privacy
             </a>
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Terms
             </a>
-            <a href="#" className="text-white/30 no-underline hover:text-white/50">
+            <a
+              href="#"
+              className="text-white/30 no-underline hover:text-white/50"
+            >
               Help
             </a>
           </div>

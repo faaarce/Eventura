@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import { ApiError, generateReferralCode } from "../utils/helpers.js";
 import { sendWelcomeEmail, sendResetPasswordEmail } from "../utils/mail.js";
+import { uploadImage, deleteImage } from "../utils/cloudinary.js";
 
 interface RegisterInput {
   name: string;
@@ -162,17 +163,32 @@ export async function getProfile(userId: string) {
 export async function updateProfile(
   userId: string,
   input: { name?: string; profileImage?: string },
+  file?: Express.Multer.File,
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found");
+
+  let profileImage = input.profileImage;
+
+  // Kalau ada file upload, upload ke Cloudinary
+  if (file) {
+    // Hapus foto lama kalau ada
+    if (user.profileImage) {
+      try {
+        await deleteImage(user.profileImage);
+      } catch {
+        // Ignore delete error — foto lama mungkin udah gak ada
+      }
+    }
+    const { secure_url } = await uploadImage(file, "eventura/profiles");
+    profileImage = secure_url;
+  }
 
   return await prisma.user.update({
     where: { id: userId },
     data: {
       ...(input.name && { name: input.name }),
-      ...(input.profileImage !== undefined && {
-        profileImage: input.profileImage,
-      }),
+      ...(profileImage !== undefined && { profileImage }),
     },
     select: {
       id: true,

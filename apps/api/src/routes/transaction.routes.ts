@@ -10,6 +10,7 @@ import {
   getOrganizerTransactions,
 } from "../controllers/transaction.controller.js";
 import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.patch(
   "/:id/payment-proof",
   authenticate,
   authorize("CUSTOMER"),
+  upload().single("paymentProof"),
   uploadPaymentProof,
 );
 router.patch("/:id/cancel", authenticate, authorize("CUSTOMER"), cancel);

@@ -1,4 +1,3 @@
-
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -15,7 +14,7 @@ import { createEvent } from "@/utils/api";
 
 export const Route = createFileRoute("/organizer/dashboard/events/new")({
   component: NewEventPage,
-  ssr: false
+  ssr: false,
 });
 
 const CATEGORIES = [
@@ -51,7 +50,8 @@ function NewEventPage() {
   const [ticketTypes, setTicketTypes] = useState<TicketTypeForm[]>([
     { name: "Regular", price: "", totalSeats: "" },
   ]);
-
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -63,10 +63,10 @@ function NewEventPage() {
   const updateTicket = (
     index: number,
     field: keyof TicketTypeForm,
-    value: string
+    value: string,
   ) => {
     setTicketTypes((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, [field]: value } : t))
+      prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)),
     );
     setError("");
   };
@@ -133,22 +133,25 @@ function NewEventPage() {
     setError("");
 
     try {
-      const newEvent = await createEvent({
-        name: form.name,
-        description: form.description,
-        category: form.category,
-        location: form.location,
-        venue: form.venue,
-        startDate: new Date(form.startDate).toISOString(),
-        endDate: new Date(form.endDate).toISOString(),
-        isFree: form.isFree,
-        imageUrl: form.imageUrl || undefined,
-        ticketTypes: ticketTypes.map((t) => ({
-          name: t.name,
-          price: form.isFree ? 0 : parseInt(t.price),
-          totalSeats: parseInt(t.totalSeats),
-        })),
-      });
+      const newEvent = await createEvent(
+        {
+          name: form.name,
+          description: form.description,
+          category: form.category,
+          location: form.location,
+          venue: form.venue,
+          startDate: new Date(form.startDate).toISOString(),
+          endDate: new Date(form.endDate).toISOString(),
+          isFree: form.isFree,
+          imageUrl: form.imageUrl || undefined,
+          ticketTypes: ticketTypes.map((t) => ({
+            name: t.name,
+            price: form.isFree ? 0 : parseInt(t.price),
+            totalSeats: parseInt(t.totalSeats),
+          })),
+        },
+        imageFile || undefined,
+      );
 
       // Redirect ke list events
       navigate({ to: "/organizer/dashboard/events" });
@@ -229,17 +232,44 @@ function NewEventPage() {
             </FormField>
 
             {/* Image URL */}
-            <FormField label="URL Gambar (opsional)">
-              <div className="flex items-center gap-2 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30">
-                <ImageIcon size={16} className="shrink-0 text-white/30" />
+            <FormField label="Gambar Event (opsional)">
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/15 bg-white/3 px-4 py-6 transition-all hover:border-white/30 hover:bg-white/5">
+                {imagePreview ? (
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-32 rounded-lg"
+                  />
+                ) : (
+                  <>
+                    <ImageIcon size={24} className="text-white/30" />
+                    <p className="mt-2 text-sm font-semibold text-white/50">
+                      Klik untuk upload gambar
+                    </p>
+                    <p className="mt-1 text-xs text-white/30">
+                      JPG, PNG, WebP — max 5MB
+                    </p>
+                  </>
+                )}
                 <input
-                  type="url"
-                  placeholder="https://..."
-                  value={form.imageUrl}
-                  onChange={(e) => updateField("imageUrl", e.target.value)}
-                  className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
                 />
-              </div>
+              </label>
+              {imageFile && (
+                <p className="mt-2 text-xs text-white/40">
+                  {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(1)}{" "}
+                  MB)
+                </p>
+              )}
             </FormField>
           </div>
         </section>
@@ -355,7 +385,9 @@ function NewEventPage() {
                       type="text"
                       placeholder="Early Bird"
                       value={ticket.name}
-                      onChange={(e) => updateTicket(index, "name", e.target.value)}
+                      onChange={(e) =>
+                        updateTicket(index, "name", e.target.value)
+                      }
                       className="form-input-sm"
                     />
                   </FormField>
@@ -368,7 +400,9 @@ function NewEventPage() {
                       type="number"
                       placeholder="75000"
                       value={ticket.price}
-                      onChange={(e) => updateTicket(index, "price", e.target.value)}
+                      onChange={(e) =>
+                        updateTicket(index, "price", e.target.value)
+                      }
                       disabled={form.isFree}
                       min={0}
                       className="form-input-sm disabled:opacity-40"

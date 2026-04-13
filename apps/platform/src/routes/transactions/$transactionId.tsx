@@ -1,5 +1,10 @@
 // apps/platform/src/routes/transactions/$transactionId.tsx
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { isAuthenticated } from "@/utils/auth";
 import {
@@ -119,7 +124,8 @@ function TransactionDetailPage() {
   const { transaction: initialTrx } = Route.useLoaderData();
   const navigate = useNavigate();
   const [trx, setTrx] = useState<ApiTransaction>(initialTrx);
-  const [proofUrl, setProofUrl] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [error, setError] = useState("");
@@ -128,16 +134,17 @@ function TransactionDetailPage() {
   const status = statusConfig[trx.status];
 
   const handleUpload = async () => {
-    if (!proofUrl.trim()) {
-      setError("Masukkan URL bukti pembayaran");
+    if (!proofFile) {
+      setError("Pilih file bukti pembayaran");
       return;
     }
     setUploading(true);
     setError("");
     try {
-      const updated = await uploadPaymentProof(trx.id, proofUrl.trim());
+      const updated = await uploadPaymentProof(trx.id, proofFile);
       setTrx(updated);
-      setProofUrl("");
+      setProofFile(null);
+      setProofPreview(null);
     } catch (err: any) {
       try {
         const body = await err.response?.json();
@@ -338,21 +345,47 @@ function TransactionDetailPage() {
 
             <div className="mt-4">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                URL Bukti Transfer
+                Bukti Transfer
               </label>
-              <input
-                type="url"
-                placeholder="https://imgur.com/..."
-                value={proofUrl}
-                onChange={(e) => {
-                  setProofUrl(e.target.value);
-                  setError("");
-                }}
-                className="w-full rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 font-[inherit] text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30"
-              />
-              {error && (
-                <p className="mt-2 text-xs font-semibold text-red-400">
-                  {error}
+
+              {/* File input */}
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/15 bg-white/3 px-4 py-6 transition-all hover:border-white/30 hover:bg-white/5">
+                {proofPreview ? (
+                  <img
+                    src={proofPreview}
+                    alt="Preview"
+                    className="max-h-40 rounded-lg"
+                  />
+                ) : (
+                  <>
+                    <Upload size={24} className="text-white/30" />
+                    <p className="mt-2 text-sm font-semibold text-white/50">
+                      Klik untuk pilih file
+                    </p>
+                    <p className="mt-1 text-xs text-white/30">
+                      JPG, PNG, WebP — max 2MB
+                    </p>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setProofFile(file);
+                      setProofPreview(URL.createObjectURL(file));
+                      setError("");
+                    }
+                  }}
+                />
+              </label>
+
+              {proofFile && (
+                <p className="mt-2 text-xs text-white/40">
+                  {proofFile.name} ({(proofFile.size / 1024 / 1024).toFixed(1)}{" "}
+                  MB)
                 </p>
               )}
             </div>

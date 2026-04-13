@@ -19,8 +19,17 @@ const createEventSchema = z.object({
 
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = createEventSchema.parse(req.body);
-    const result = await eventService.create(req.user!.userId, data);
+    // Multer pake multipart, jadi ticketTypes dikirim sebagai JSON string
+    const body = {
+      ...req.body,
+      isFree: req.body.isFree === "true" || req.body.isFree === true,
+      ticketTypes: typeof req.body.ticketTypes === "string"
+        ? JSON.parse(req.body.ticketTypes)
+        : req.body.ticketTypes,
+    };
+    const data = createEventSchema.parse(body);
+    const file = req.file; // optional event image
+    const result = await eventService.create(req.user!.userId, data, file);
     res.status(201).json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -47,13 +56,14 @@ export async function findById(req: Request, res: Response, next: NextFunction) 
 
 export async function update(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await eventService.update(req.params.id, req.user!.userId, req.body);
+    const file = req.file; // optional event image
+    const result = await eventService.update(req.params.id, req.user!.userId, req.body, file);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 }
-
+ 
 export async function remove(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await eventService.remove(req.params.id, req.user!.userId);
