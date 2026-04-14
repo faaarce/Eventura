@@ -127,7 +127,7 @@ export async function login(input: LoginInput) {
   const valid = await bcrypt.compare(input.password, user.password);
   if (!valid) throw new ApiError(401, "Invalid email or password");
 
-  const token = generateToken(user.id, user.email, user.role);
+  const accessToken = generateAccessToken(user.id, user.email, user.role);
 
   const refreshToken = crypto.randomBytes(40).toString("hex");
   const expiredAt = new Date(

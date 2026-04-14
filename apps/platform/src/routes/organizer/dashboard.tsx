@@ -43,7 +43,7 @@ function DashboardLayout() {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (!confirm("Yakin mau logout?")) return;
     await logout();
     navigate({ to: "/auth/login" });
