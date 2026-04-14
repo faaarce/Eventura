@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import * as authService from "../services/auth.service.js";
 import z from "zod";
+import { cookieOptions } from "../config/cookie.js";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -32,8 +33,18 @@ export async function register(
 ) {
   try {
     const data = registerSchema.parse(req.body);
-    const result = await authService.register(data);
-    res.status(201).json({ success: true, data: result });
+    const { user, accessToken, refreshToken } =
+      await authService.register(data);
+
+    res.cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: { user, token: accessToken },
+    });
   } catch (err) {
     next(err);
   }
@@ -42,8 +53,18 @@ export async function register(
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const data = loginSchema.parse(req.body);
-    const result = await authService.login(data);
-    res.json({ success: true, data: result });
+    const { user, accessToken, refreshToken } = await authService.login(data);
+
+    // Set refresh token as httpOnly cookie
+    res.cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({
+      success: true,
+      data: { user, token: accessToken },
+    });
   } catch (err) {
     next(err);
   }
@@ -130,6 +151,55 @@ export async function resetPassword(
       data.token,
       data.newPassword,
     );
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getOrganizerPublicProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await authService.getOrganizerPublicProfile(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function refreshToken(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const token = req.cookies?.refreshToken;
+    const result = await authService.refresh(token);
+
+    res.json({
+      success: true,
+      data: { token: result.accessToken },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// TAMBAH function logout:
+export async function logoutUser(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const token = req.cookies?.refreshToken;
+    const result = await authService.logout(token);
+
+    res.clearCookie("refreshToken", cookieOptions);
+
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

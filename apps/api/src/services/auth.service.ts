@@ -6,6 +6,9 @@ import { ApiError, generateReferralCode } from "../utils/helpers.js";
 import { sendWelcomeEmail, sendResetPasswordEmail } from "../utils/mail.js";
 import { uploadImage, deleteImage } from "../utils/cloudinary.js";
 
+const ACCESS_TOKEN_EXPIRY = "15m";
+const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+
 interface RegisterInput {
   name: string;
   email: string;
@@ -92,8 +95,19 @@ export async function register(input: RegisterInput) {
     return user;
   });
 
-  const token = generateToken(result.id, result.email, result.role);
+  const accessToken = generateAccessToken(result.id, result.email, result.role);
+  const refreshToken = crypto.randomBytes(40).toString("hex");
+  const expiredAt = new Date(
+    Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  );
 
+  await prisma.refreshToken.upsert({
+    where: { userId: result.id },
+    update: { token: refreshToken, expiredAt },
+    create: { token: refreshToken, expiredAt, userId: result.id },
+  });
+
+  // Fire-and-forget welcome email
   sendWelcomeEmail({
     email: result.email,
     name: result.name,
@@ -101,7 +115,7 @@ export async function register(input: RegisterInput) {
     referralCode: result.referralCode,
   });
 
-  return { user: result, token };
+  return { user: result, accessToken, refreshToken };
 }
 
 export async function login(input: LoginInput) {
@@ -115,6 +129,17 @@ export async function login(input: LoginInput) {
 
   const token = generateToken(user.id, user.email, user.role);
 
+  const refreshToken = crypto.randomBytes(40).toString("hex");
+  const expiredAt = new Date(
+    Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  await prisma.refreshToken.upsert({
+    where: { userId: user.id },
+    update: { token: refreshToken, expiredAt },
+    create: { token: refreshToken, expiredAt, userId: user.id },
+  });
+
   return {
     user: {
       id: user.id,
@@ -123,7 +148,8 @@ export async function login(input: LoginInput) {
       role: user.role,
       referralCode: user.referralCode,
     },
-    token,
+    accessToken,
+    refreshToken,
   };
 }
 
@@ -317,4 +343,53 @@ export async function getOrganizerPublicProfile(organizerId: string) {
     totalReviews: reviewStats._count.rating,
     recentReviews,
   };
+}
+
+function generateAccessToken(
+  userId: string,
+  email: string,
+  role: string,
+): string {
+  return jwt.sign({ userId, email, role }, process.env.JWT_SECRET!, {
+    expiresIn: ACCESS_TOKEN_EXPIRY,
+  });
+}
+
+export async function refresh(refreshToken?: string) {
+  if (!refreshToken) throw new ApiError(401, "No refresh token");
+
+  const stored = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+    include: { user: { select: { id: true, email: true, role: true } } },
+  });
+
+  if (!stored) throw new ApiError(401, "Refresh token not found");
+
+  if (stored.expiredAt < new Date()) {
+    // Hapus expired token
+    await prisma.refreshToken.delete({ where: { id: stored.id } });
+    throw new ApiError(401, "Refresh token expired");
+  }
+
+  const accessToken = generateAccessToken(
+    stored.user.id,
+    stored.user.email,
+    stored.user.role,
+  );
+
+  return { accessToken };
+}
+
+export async function logout(refreshToken?: string) {
+  if (!refreshToken) return { message: "Logout success" };
+
+  try {
+    await prisma.refreshToken.delete({
+      where: { token: refreshToken },
+    });
+  } catch {
+    // Token mungkin udah gak ada — ignore
+  }
+
+  return { message: "Logout success" };
 }
