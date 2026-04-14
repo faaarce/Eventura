@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { logoutApi } from "./api";
 
 export interface AuthUser {
   userId: string;
@@ -33,6 +34,8 @@ export function isAuthenticated(): boolean {
   return getCurrentUser() !== null;
 }
 
-export function logout(): void {
-  Cookies.remove("token");
+
+export async function logout(): Promise<void> {
+  await logoutApi();       // call backend, clear httpOnly cookie
+  Cookies.remove("token"); // clear access token
 }

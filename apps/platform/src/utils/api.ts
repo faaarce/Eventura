@@ -1,15 +1,56 @@
-import ky from "ky";
+import ky, { type BeforeRequestHook, type AfterResponseHook } from "ky";
 import Cookies from "js-cookie";
 
-export const api = ky.create({
-  prefixUrl: "http://localhost:8000/api",
+const api = ky.create({
+  prefixUrl: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  credentials: "include", // ← PENTING: kirim cookie (refreshToken) ke backend
   hooks: {
     beforeRequest: [
       (request) => {
-        if (typeof window !== "undefined") {
-          const token = Cookies.get("token");
-          if (token) request.headers.set("Authorization", `Bearer ${token}`);
+        const token = Cookies.get("token");
+        if (token) {
+          request.headers.set("Authorization", `Bearer ${token}`);
         }
+      },
+    ],
+    afterResponse: [
+      // Auto-refresh: kalau dapat 401, coba refresh token
+      async (request, options, response) => {
+        if (response.status !== 401) return response;
+
+        // Jangan infinite loop — kalau refresh endpoint sendiri 401, stop
+        if (request.url.includes("/auth/refresh")) return response;
+        if (request.url.includes("/auth/login")) return response;
+
+        try {
+          // Call refresh endpoint — browser otomatis kirim refreshToken cookie
+          const refreshRes = await ky
+            .post(
+              `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/auth/refresh`,
+              { credentials: "include" },
+            )
+            .json<{ success: boolean; data: { token: string } }>();
+
+          if (refreshRes.success && refreshRes.data.token) {
+            // Simpan access token baru
+            Cookies.set("token", refreshRes.data.token, { expires: 1 });
+
+            // Retry request original dengan token baru
+            request.headers.set(
+              "Authorization",
+              `Bearer ${refreshRes.data.token}`,
+            );
+            return ky(request);
+          }
+        } catch {
+          // Refresh gagal — force logout
+          Cookies.remove("token");
+          if (typeof window !== "undefined") {
+            window.location.href = "/auth/login";
+          }
+        }
+
+        return response;
       },
     ],
   },
@@ -702,3 +743,12 @@ export async function fetchOrganizerProfile(
     .json<ApiResponse<ApiOrganizerProfile>>();
   return res.data;
 }
+
+export async function logoutApi(): Promise<void> {
+  try {
+    await api.post("auth/logout").json();
+  } catch {
+    // Ignore — logout best-effort
+  }
+}
+ 

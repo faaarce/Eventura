@@ -190,7 +190,7 @@ function ProfilePage() {
 
   const handleLogout = () => {
     if (!confirm("Yakin mau logout?")) return;
-    logout();
+    await logout();
     navigate({ to: "/auth/login" });
   };
 
