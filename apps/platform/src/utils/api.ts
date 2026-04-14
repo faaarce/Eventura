@@ -64,6 +64,7 @@ export async function fetchEvents(
     search?: string;
     category?: string;
     isFree?: boolean;
+    organizerId?: string;
     page?: number;
     limit?: number;
   } = {},
@@ -72,6 +73,7 @@ export async function fetchEvents(
   if (params.search) searchParams.search = params.search;
   if (params.category) searchParams.category = params.category;
   if (params.isFree !== undefined) searchParams.isFree = String(params.isFree);
+  if (params.organizerId) searchParams.organizerId = params.organizerId;
   if (params.page) searchParams.page = String(params.page);
   if (params.limit) searchParams.limit = String(params.limit);
 
@@ -404,7 +406,7 @@ export async function fetchMyEvents(
 
 export async function createEvent(
   input: CreateEventInput,
-  file?: File
+  file?: File,
 ): Promise<ApiOrganizerEvent> {
   const formData = new FormData();
   formData.append("name", input.name);
@@ -417,7 +419,7 @@ export async function createEvent(
   formData.append("isFree", String(input.isFree));
   formData.append("ticketTypes", JSON.stringify(input.ticketTypes));
   if (file) formData.append("image", file);
- 
+
   const res = await api
     .post("events", { body: formData })
     .json<ApiResponse<ApiOrganizerEvent>>();
@@ -628,7 +630,7 @@ interface UpdateEventInput {
 export async function updateEvent(
   eventId: string,
   input: UpdateEventInput,
-  file?: File
+  file?: File,
 ): Promise<ApiOrganizerEvent> {
   if (file) {
     const formData = new FormData();
@@ -640,13 +642,13 @@ export async function updateEvent(
     if (input.startDate) formData.append("startDate", input.startDate);
     if (input.endDate) formData.append("endDate", input.endDate);
     formData.append("image", file);
- 
+
     const res = await api
       .put(`events/${eventId}`, { body: formData })
       .json<ApiResponse<ApiOrganizerEvent>>();
     return res.data;
   }
- 
+
   // Tanpa file — kirim JSON biasa
   const res = await api
     .put(`events/${eventId}`, { json: input })
@@ -670,5 +672,33 @@ export async function resetPassword(
   const res = await api
     .post("auth/reset-password", { json: { token, newPassword } })
     .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}
+
+export interface ApiOrganizerProfile {
+  id: string;
+  name: string;
+  email: string;
+  profileImage: string | null;
+  createdAt: string;
+  totalEvents: number;
+  averageRating: number;
+  totalReviews: number;
+  recentReviews: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    createdAt: string;
+    user: { id: string; name: string; profileImage: string | null };
+    event: { id: string; name: string };
+  }[];
+}
+
+export async function fetchOrganizerProfile(
+  organizerId: string,
+): Promise<ApiOrganizerProfile> {
+  const res = await api
+    .get(`auth/organizer/${organizerId}`)
+    .json<ApiResponse<ApiOrganizerProfile>>();
   return res.data;
 }

@@ -24,6 +24,7 @@ interface EventQuery {
   limit?: string;
   sortBy?: string;
   sortOrder?: string;
+  organizerId?: string;
 }
 
 export async function create(
@@ -97,6 +98,7 @@ export async function findAll(query: EventQuery) {
   if (query.location)
     where.location = { contains: query.location, mode: "insensitive" };
   if (query.isFree !== undefined) where.isFree = query.isFree === "true";
+  if (query.organizerId) where.organizerId = query.organizerId;
 
   const [events, total] = await Promise.all([
     prisma.event.findMany({

@@ -270,3 +270,51 @@ export async function resetPassword(token: string, newPassword: string) {
 
   return { message: "Password berhasil direset. Silakan login." };
 }
+
+export async function getOrganizerPublicProfile(organizerId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: organizerId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      profileImage: true,
+      createdAt: true,
+    },
+  });
+  if (!user) throw new ApiError(404, "Organizer not found");
+  if (user.role !== "ORGANIZER")
+    throw new ApiError(404, "User is not an organizer");
+
+  // Count events
+  const totalEvents = await prisma.event.count({ where: { organizerId } });
+
+  // Review stats
+  const reviewStats = await prisma.review.aggregate({
+    where: { event: { organizerId } },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  // Recent reviews
+  const recentReviews = await prisma.review.findMany({
+    where: { event: { organizerId } },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, name: true, profileImage: true } },
+      event: { select: { id: true, name: true } },
+    },
+  });
+
+  return {
+    ...user,
+    totalEvents,
+    averageRating: reviewStats._avg.rating
+      ? Math.round(reviewStats._avg.rating * 10) / 10
+      : 0,
+    totalReviews: reviewStats._count.rating,
+    recentReviews,
+  };
+}
