@@ -145,15 +145,13 @@ export async function update(
   if (event.organizerId !== organizerId)
     throw new ApiError(403, "You can only edit your own events");
 
-  // Upload new image kalau ada file
-  let imageUrl = input.imageUrl;
+  let imageUrl: string | undefined;
   if (file) {
-    // Hapus gambar lama kalau ada
     if (event.imageUrl) {
       try {
         await deleteImage(event.imageUrl);
       } catch {
-        // Ignore
+   
       }
     }
     const { secure_url } = await uploadImage(file, "eventura/events");
