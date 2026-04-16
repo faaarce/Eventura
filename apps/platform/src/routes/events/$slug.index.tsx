@@ -1,3 +1,20 @@
+// ============================================================
+// FILE BARU: apps/platform/src/routes/events/$slug.index.tsx
+// ============================================================
+//
+// CARA SETUP:
+// 1. RENAME file lama:
+//    mv apps/platform/src/routes/events/$eventId.index.tsx \
+//       apps/platform/src/routes/events/$slug.index.tsx
+//
+// 2. Replace isinya dengan code di bawah.
+//
+// Changes:
+//   - Route path: /events/$eventId/ → /events/$slug/
+//   - Loader: fetchEventById(params.eventId) → fetchEventBySlug(params.slug)
+//   - Link to checkout: params.eventId → params.slug
+// ============================================================
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { EventReviews } from "@/components/events/EventReviews";
 import { useState } from "react";
@@ -15,12 +32,12 @@ import {
 } from "lucide-react";
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
-import { fetchEventById } from "@/utils/api";
+import { fetchEventBySlug } from "@/utils/api"; // ← CHANGE
 
-export const Route = createFileRoute("/events/$eventId/")({
+export const Route = createFileRoute("/events/$slug/")({
   component: EventDetailPage,
   loader: async ({ params }) => {
-    const event = await fetchEventById(params.eventId);
+    const event = await fetchEventBySlug(params.slug); // ← CHANGE
     return { event };
   },
   errorComponent: ({ error }) => (
@@ -179,9 +196,10 @@ function EventDetailPage() {
             </div>
 
             <div className="mt-6 hidden flex-col gap-3 sm:mt-8 md:flex">
+              {/* ← CHANGE: params.eventId → params.slug */}
               <Link
-                to="/events/$eventId/checkout"
-                params={{ eventId: event.id }}
+                to="/events/$slug/checkout"
+                params={{ slug: event.slug }}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-4 text-base font-bold text-[#0a0a0a] no-underline transition-all hover:bg-white/90"
               >
                 <Ticket size={20} />
@@ -219,7 +237,6 @@ function EventDetailPage() {
 
             <div className="my-6 border-t border-white/8 sm:my-8" />
 
-            {/* Ticket types preview */}
             <div>
               <h2 className="text-base font-bold text-white sm:text-lg">
                 Ticket types
@@ -320,9 +337,10 @@ function EventDetailPage() {
             </button>
           </div>
 
+          {/* ← CHANGE: params.eventId → params.slug */}
           <Link
-            to="/events/$eventId/checkout"
-            params={{ eventId: event.id }}
+            to="/events/$slug/checkout"
+            params={{ slug: event.slug }}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5 text-sm font-bold text-[#0a0a0a] no-underline"
           >
             <Ticket size={18} />

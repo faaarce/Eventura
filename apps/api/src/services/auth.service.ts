@@ -8,6 +8,7 @@ import { uploadImage, deleteImage } from "../utils/cloudinary.js";
 
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+const RESET_TOKEN_EXPIRY = "15m";
 
 interface RegisterInput {
   name: string;
@@ -255,12 +256,19 @@ export async function forgotPassword(email: string) {
     return { message: "Jika email terdaftar, link reset sudah dikirim" };
 
   // Generate token
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 jam
+  const resetToken = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET_RESET!,
+    { expiresIn: RESET_TOKEN_EXPIRY },
+  );
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { resetToken, resetTokenExpiry },
+    data: {
+      resetToken,
+      resetTokenExpiry: new Date(Date.now() + 15 * 60 * 1000),
+      resetTokenUsed: false,
+    },
   });
 
   // Send email (fire-and-forget)
@@ -273,14 +281,19 @@ export async function forgotPassword(email: string) {
   return { message: "Jika email terdaftar, link reset sudah dikirim" };
 }
 
-export async function resetPassword(token: string, newPassword: string) {
+export async function resetPassword(
+  userId: string,
+  newPassword: string,
+  token: string,
+) {
   const user = await prisma.user.findFirst({
     where: {
+      id: userId,
       resetToken: token,
       resetTokenExpiry: { gt: new Date() },
+      resetTokenUsed: false,
     },
   });
-
   if (!user) throw new ApiError(400, "Token tidak valid atau sudah expired");
 
   const hashed = await bcrypt.hash(newPassword, 10);
@@ -289,11 +302,9 @@ export async function resetPassword(token: string, newPassword: string) {
     where: { id: user.id },
     data: {
       password: hashed,
-      resetToken: null,
-      resetTokenExpiry: null,
+      resetTokenUsed: true, // tandain udah dipake, token dibiarkan buat audit
     },
   });
-
   return { message: "Password berhasil direset. Silakan login." };
 }
 

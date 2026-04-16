@@ -16,15 +16,15 @@ import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as TransactionsTransactionIdRouteImport } from './routes/transactions/$transactionId'
 import { Route as OrganizerDashboardRouteImport } from './routes/organizer/dashboard'
 import { Route as OrganizerOrganizeIdRouteImport } from './routes/organizer/$organizeId'
-import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
+import { Route as EventsSlugRouteImport } from './routes/events/$slug'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
 import { Route as OrganizerDashboardIndexRouteImport } from './routes/organizer/dashboard.index'
-import { Route as EventsEventIdIndexRouteImport } from './routes/events/$eventId.index'
+import { Route as EventsSlugIndexRouteImport } from './routes/events/$slug.index'
 import { Route as OrganizerDashboardTransactionsRouteImport } from './routes/organizer/dashboard.transactions'
-import { Route as EventsEventIdCheckoutRouteImport } from './routes/events/$eventId.checkout'
+import { Route as EventsSlugCheckoutRouteImport } from './routes/events/$slug.checkout'
 import { Route as OrganizerDashboardEventsIndexRouteImport } from './routes/organizer/dashboard.events.index'
 import { Route as OrganizerDashboardEventsNewRouteImport } from './routes/organizer/dashboard.events.new'
 import { Route as OrganizerDashboardEventsEventIdVouchersRouteImport } from './routes/organizer/dashboard.events.$eventId.vouchers'
@@ -67,9 +67,9 @@ const OrganizerOrganizeIdRoute = OrganizerOrganizeIdRouteImport.update({
   path: '/organizer/$organizeId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventsEventIdRoute = EventsEventIdRouteImport.update({
-  id: '/events/$eventId',
-  path: '/events/$eventId',
+const EventsSlugRoute = EventsSlugRouteImport.update({
+  id: '/events/$slug',
+  path: '/events/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
@@ -97,10 +97,10 @@ const OrganizerDashboardIndexRoute = OrganizerDashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OrganizerDashboardRoute,
 } as any)
-const EventsEventIdIndexRoute = EventsEventIdIndexRouteImport.update({
+const EventsSlugIndexRoute = EventsSlugIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => EventsEventIdRoute,
+  getParentRoute: () => EventsSlugRoute,
 } as any)
 const OrganizerDashboardTransactionsRoute =
   OrganizerDashboardTransactionsRouteImport.update({
@@ -108,10 +108,10 @@ const OrganizerDashboardTransactionsRoute =
     path: '/transactions',
     getParentRoute: () => OrganizerDashboardRoute,
   } as any)
-const EventsEventIdCheckoutRoute = EventsEventIdCheckoutRouteImport.update({
+const EventsSlugCheckoutRoute = EventsSlugCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
-  getParentRoute: () => EventsEventIdRoute,
+  getParentRoute: () => EventsSlugRoute,
 } as any)
 const OrganizerDashboardEventsIndexRoute =
   OrganizerDashboardEventsIndexRouteImport.update({
@@ -152,14 +152,14 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/events/$eventId': typeof EventsEventIdRouteWithChildren
+  '/events/$slug': typeof EventsSlugRouteWithChildren
   '/organizer/$organizeId': typeof OrganizerOrganizeIdRoute
   '/organizer/dashboard': typeof OrganizerDashboardRouteWithChildren
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/events/': typeof EventsIndexRoute
-  '/events/$eventId/checkout': typeof EventsEventIdCheckoutRoute
+  '/events/$slug/checkout': typeof EventsSlugCheckoutRoute
   '/organizer/dashboard/transactions': typeof OrganizerDashboardTransactionsRoute
-  '/events/$eventId/': typeof EventsEventIdIndexRoute
+  '/events/$slug/': typeof EventsSlugIndexRoute
   '/organizer/dashboard/': typeof OrganizerDashboardIndexRoute
   '/organizer/dashboard/events/new': typeof OrganizerDashboardEventsNewRoute
   '/organizer/dashboard/events/': typeof OrganizerDashboardEventsIndexRoute
@@ -178,9 +178,9 @@ export interface FileRoutesByTo {
   '/organizer/$organizeId': typeof OrganizerOrganizeIdRoute
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/events': typeof EventsIndexRoute
-  '/events/$eventId/checkout': typeof EventsEventIdCheckoutRoute
+  '/events/$slug/checkout': typeof EventsSlugCheckoutRoute
   '/organizer/dashboard/transactions': typeof OrganizerDashboardTransactionsRoute
-  '/events/$eventId': typeof EventsEventIdIndexRoute
+  '/events/$slug': typeof EventsSlugIndexRoute
   '/organizer/dashboard': typeof OrganizerDashboardIndexRoute
   '/organizer/dashboard/events/new': typeof OrganizerDashboardEventsNewRoute
   '/organizer/dashboard/events': typeof OrganizerDashboardEventsIndexRoute
@@ -197,14 +197,14 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
-  '/events/$eventId': typeof EventsEventIdRouteWithChildren
+  '/events/$slug': typeof EventsSlugRouteWithChildren
   '/organizer/$organizeId': typeof OrganizerOrganizeIdRoute
   '/organizer/dashboard': typeof OrganizerDashboardRouteWithChildren
   '/transactions/$transactionId': typeof TransactionsTransactionIdRoute
   '/events/': typeof EventsIndexRoute
-  '/events/$eventId/checkout': typeof EventsEventIdCheckoutRoute
+  '/events/$slug/checkout': typeof EventsSlugCheckoutRoute
   '/organizer/dashboard/transactions': typeof OrganizerDashboardTransactionsRoute
-  '/events/$eventId/': typeof EventsEventIdIndexRoute
+  '/events/$slug/': typeof EventsSlugIndexRoute
   '/organizer/dashboard/': typeof OrganizerDashboardIndexRoute
   '/organizer/dashboard/events/new': typeof OrganizerDashboardEventsNewRoute
   '/organizer/dashboard/events/': typeof OrganizerDashboardEventsIndexRoute
@@ -222,14 +222,14 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/auth/reset-password'
-    | '/events/$eventId'
+    | '/events/$slug'
     | '/organizer/$organizeId'
     | '/organizer/dashboard'
     | '/transactions/$transactionId'
     | '/events/'
-    | '/events/$eventId/checkout'
+    | '/events/$slug/checkout'
     | '/organizer/dashboard/transactions'
-    | '/events/$eventId/'
+    | '/events/$slug/'
     | '/organizer/dashboard/'
     | '/organizer/dashboard/events/new'
     | '/organizer/dashboard/events/'
@@ -248,9 +248,9 @@ export interface FileRouteTypes {
     | '/organizer/$organizeId'
     | '/transactions/$transactionId'
     | '/events'
-    | '/events/$eventId/checkout'
+    | '/events/$slug/checkout'
     | '/organizer/dashboard/transactions'
-    | '/events/$eventId'
+    | '/events/$slug'
     | '/organizer/dashboard'
     | '/organizer/dashboard/events/new'
     | '/organizer/dashboard/events'
@@ -266,14 +266,14 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/auth/reset-password'
-    | '/events/$eventId'
+    | '/events/$slug'
     | '/organizer/$organizeId'
     | '/organizer/dashboard'
     | '/transactions/$transactionId'
     | '/events/'
-    | '/events/$eventId/checkout'
+    | '/events/$slug/checkout'
     | '/organizer/dashboard/transactions'
-    | '/events/$eventId/'
+    | '/events/$slug/'
     | '/organizer/dashboard/'
     | '/organizer/dashboard/events/new'
     | '/organizer/dashboard/events/'
@@ -290,7 +290,7 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
-  EventsEventIdRoute: typeof EventsEventIdRouteWithChildren
+  EventsSlugRoute: typeof EventsSlugRouteWithChildren
   OrganizerOrganizeIdRoute: typeof OrganizerOrganizeIdRoute
   OrganizerDashboardRoute: typeof OrganizerDashboardRouteWithChildren
   TransactionsTransactionIdRoute: typeof TransactionsTransactionIdRoute
@@ -348,11 +348,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizerOrganizeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/events/$eventId': {
-      id: '/events/$eventId'
-      path: '/events/$eventId'
-      fullPath: '/events/$eventId'
-      preLoaderRoute: typeof EventsEventIdRouteImport
+    '/events/$slug': {
+      id: '/events/$slug'
+      path: '/events/$slug'
+      fullPath: '/events/$slug'
+      preLoaderRoute: typeof EventsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/reset-password': {
@@ -390,12 +390,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizerDashboardIndexRouteImport
       parentRoute: typeof OrganizerDashboardRoute
     }
-    '/events/$eventId/': {
-      id: '/events/$eventId/'
+    '/events/$slug/': {
+      id: '/events/$slug/'
       path: '/'
-      fullPath: '/events/$eventId/'
-      preLoaderRoute: typeof EventsEventIdIndexRouteImport
-      parentRoute: typeof EventsEventIdRoute
+      fullPath: '/events/$slug/'
+      preLoaderRoute: typeof EventsSlugIndexRouteImport
+      parentRoute: typeof EventsSlugRoute
     }
     '/organizer/dashboard/transactions': {
       id: '/organizer/dashboard/transactions'
@@ -404,12 +404,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizerDashboardTransactionsRouteImport
       parentRoute: typeof OrganizerDashboardRoute
     }
-    '/events/$eventId/checkout': {
-      id: '/events/$eventId/checkout'
+    '/events/$slug/checkout': {
+      id: '/events/$slug/checkout'
       path: '/checkout'
-      fullPath: '/events/$eventId/checkout'
-      preLoaderRoute: typeof EventsEventIdCheckoutRouteImport
-      parentRoute: typeof EventsEventIdRoute
+      fullPath: '/events/$slug/checkout'
+      preLoaderRoute: typeof EventsSlugCheckoutRouteImport
+      parentRoute: typeof EventsSlugRoute
     }
     '/organizer/dashboard/events/': {
       id: '/organizer/dashboard/events/'
@@ -449,18 +449,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface EventsEventIdRouteChildren {
-  EventsEventIdCheckoutRoute: typeof EventsEventIdCheckoutRoute
-  EventsEventIdIndexRoute: typeof EventsEventIdIndexRoute
+interface EventsSlugRouteChildren {
+  EventsSlugCheckoutRoute: typeof EventsSlugCheckoutRoute
+  EventsSlugIndexRoute: typeof EventsSlugIndexRoute
 }
 
-const EventsEventIdRouteChildren: EventsEventIdRouteChildren = {
-  EventsEventIdCheckoutRoute: EventsEventIdCheckoutRoute,
-  EventsEventIdIndexRoute: EventsEventIdIndexRoute,
+const EventsSlugRouteChildren: EventsSlugRouteChildren = {
+  EventsSlugCheckoutRoute: EventsSlugCheckoutRoute,
+  EventsSlugIndexRoute: EventsSlugIndexRoute,
 }
 
-const EventsEventIdRouteWithChildren = EventsEventIdRoute._addFileChildren(
-  EventsEventIdRouteChildren,
+const EventsSlugRouteWithChildren = EventsSlugRoute._addFileChildren(
+  EventsSlugRouteChildren,
 )
 
 interface OrganizerDashboardRouteChildren {
@@ -497,7 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
-  EventsEventIdRoute: EventsEventIdRouteWithChildren,
+  EventsSlugRoute: EventsSlugRouteWithChildren,
   OrganizerOrganizeIdRoute: OrganizerOrganizeIdRoute,
   OrganizerDashboardRoute: OrganizerDashboardRouteWithChildren,
   TransactionsTransactionIdRoute: TransactionsTransactionIdRoute,

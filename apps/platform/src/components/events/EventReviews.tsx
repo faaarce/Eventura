@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Star, MessageSquare, Send } from "lucide-react";
-import Cookies from "js-cookie";
-import { getCurrentUser } from "@/utils/auth";
+import { useAtomValue } from "jotai";
+import { userAtom, isAuthenticatedAtom } from "@/stores/auth";
 import {
   fetchEventReviews,
   fetchMyTransactions,
@@ -27,7 +27,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
   const [summary, setSummary] = useState({ averageRating: 0, totalReviews: 0 });
   const [loading, setLoading] = useState(true);
 
-  // Form state
   const [canReview, setCanReview] = useState(false);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [rating, setRating] = useState(0);
@@ -36,30 +35,29 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const eventEnded = new Date(eventEndDate) < new Date();
-  const isLoggedIn = typeof window !== "undefined" && !!Cookies.get("token");
+  // Dari Jotai, bukan Cookies!
+  const currentUser = useAtomValue(userAtom);
+  const isLoggedIn = useAtomValue(isAuthenticatedAtom);
 
-  // Load reviews + check eligibility
+  const eventEnded = new Date(eventEndDate) < new Date();
+
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       try {
-        // Fetch reviews (public, no auth needed)
         const reviewData = await fetchEventReviews(eventId, { limit: 20 });
         if (cancelled) return;
         setReviews(reviewData.reviews);
         setSummary(reviewData.summary);
 
-        // Check eligibility: event ended + user logged in + has DONE transaction
         if (!eventEnded || !isLoggedIn) return;
 
         // Cek user udah review atau belum
-        const currentUser = getCurrentUser();
         if (currentUser) {
           const hasReviewed = reviewData.reviews.some(
-            (r) => r.user.id === currentUser.userId,
+            (r) => r.user.id === currentUser.id,
           );
           if (hasReviewed) {
             setAlreadyReviewed(true);
@@ -89,7 +87,7 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
     return () => {
       cancelled = true;
     };
-  }, [eventId, eventEnded, isLoggedIn]);
+  }, [eventId, eventEnded, isLoggedIn, currentUser]);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -106,7 +104,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         comment: comment.trim() || undefined,
       });
 
-      // Update UI optimistically
       setReviews((prev) => [newReview, ...prev]);
       setSummary((prev) => {
         const newTotal = prev.totalReviews + 1;
@@ -118,7 +115,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         };
       });
 
-      // Reset form
       setRating(0);
       setComment("");
       setCanReview(false);
@@ -146,7 +142,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
 
   return (
     <div>
-      {/* Header with summary */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-white sm:text-lg">Reviews</h2>
         {summary.totalReviews > 0 && (
@@ -165,7 +160,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         )}
       </div>
 
-      {/* Submit form — only if eligible */}
       {canReview && !alreadyReviewed && (
         <div className="mt-4 rounded-2xl border border-white/12 bg-white/5 p-5">
           <p className="text-sm font-bold text-white">
@@ -175,7 +169,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
             Rating kamu membantu customer lain buat memilih event.
           </p>
 
-          {/* Star rating picker */}
           <div className="mt-4 flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((star) => {
               const filled = (hoveredRating || rating) >= star;
@@ -206,7 +199,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
             )}
           </div>
 
-          {/* Comment textarea */}
           <textarea
             placeholder="Cerita pengalaman kamu... (opsional)"
             value={comment}
@@ -243,7 +235,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         </div>
       )}
 
-      {/* Info states */}
       {alreadyReviewed && (
         <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400">
           ✓ Kamu udah kasih review untuk event ini. Makasih!
@@ -262,7 +253,6 @@ export function EventReviews({ eventId, eventEndDate }: EventReviewsProps) {
         </p>
       )}
 
-      {/* Review list */}
       {reviews.length > 0 ? (
         <div className="mt-5 space-y-3">
           {reviews.map((review) => (
@@ -285,7 +275,6 @@ function ReviewCard({ review }: { review: ApiReview }) {
   return (
     <div className="rounded-xl border border-white/8 bg-white/4 p-4">
       <div className="flex items-start gap-3">
-        {/* Avatar */}
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
           {review.user.name.charAt(0).toUpperCase()}
         </div>
@@ -298,7 +287,6 @@ function ReviewCard({ review }: { review: ApiReview }) {
             </p>
           </div>
 
-          {/* Rating stars */}
           <div className="mt-1 flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star

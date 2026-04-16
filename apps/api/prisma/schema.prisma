@@ -54,6 +54,7 @@ model User {
   resetToken       String?       @map("reset_token")
   resetTokenExpiry DateTime?     @map("reset_token_expiry")
   refreshToken     RefreshToken?
+  resetTokenUsed   Boolean       @default(false) @map("reset_token_used")
 
   @@map("users")
 }
@@ -63,6 +64,7 @@ model Event {
   name        String
   description String
   category    String
+  slug        String  @unique
   location    String
   venue       String
   imageUrl    String?  @map("image_url")

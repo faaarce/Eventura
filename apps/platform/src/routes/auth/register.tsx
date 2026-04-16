@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import Cookies from "js-cookie";
+import { useSetAtom } from "jotai";
 import {
   Sparkles,
   User,
@@ -11,7 +11,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useState } from "react";
-import { decodeToken } from "@/utils/auth";
+import { userAtom } from "@/stores/auth";
+import { registerApi } from "@/utils/api";
 
 export const Route = createFileRoute("/auth/register")({
   component: RegisterPage,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/auth/register")({
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const setUser = useSetAtom(userAtom); // ← Jotai setter
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -48,36 +50,30 @@ function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          role: form.role,
-          ...(form.referralCode && { referralCode: form.referralCode }),
-        }),
+      const user = await registerApi({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        ...(form.referralCode && { referralCode: form.referralCode }),
       });
 
-      const data = await res.json();
+      // Simpan user ke Jotai (auto-persist)
+      setUser(user);
 
-      if (!res.ok) {
-        setError(data.message || "Registrasi gagal");
-        return;
-      }
-
-      // Save token & redirect
-      Cookies.set("token", data.data.token, { expires: 1 });
-      const user = decodeToken(data.data.token);
-      if (user?.role === "ORGANIZER") {
+      // Redirect based on role
+      if (user.role === "ORGANIZER") {
         navigate({ to: "/organizer/dashboard" });
       } else {
         navigate({ to: "/events" });
       }
-    } catch {
-      setError("Tidak bisa terhubung ke server");
+    } catch (err: any) {
+      try {
+        const body = await err.response?.json();
+        setError(body?.message || "Registrasi gagal");
+      } catch {
+        setError("Tidak bisa terhubung ke server");
+      }
     } finally {
       setLoading(false);
     }
@@ -85,14 +81,12 @@ function RegisterPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4 py-12">
-      {/* Background effects */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-[#328f97]/8 blur-[120px]" />
         <div className="absolute -bottom-32 -right-32 h-[400px] w-[400px] rounded-full bg-[#6366f1]/6 blur-[100px]" />
       </div>
 
       <div className="rise-in relative w-full max-w-md">
-        {/* Logo */}
         <Link
           to="/"
           className="mb-8 flex items-center justify-center gap-2.5 no-underline"
@@ -108,7 +102,6 @@ function RegisterPage() {
           </span>
         </Link>
 
-        {/* Card */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm sm:p-8">
           <h1 className="text-center text-2xl font-bold text-white">
             Buat Akun Baru
@@ -124,7 +117,6 @@ function RegisterPage() {
           )}
 
           <div className="mt-6 space-y-4">
-            {/* Role toggle */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                 Daftar sebagai
@@ -155,7 +147,6 @@ function RegisterPage() {
               </div>
             </div>
 
-            {/* Name */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                 Nama lengkap
@@ -172,7 +163,6 @@ function RegisterPage() {
               </div>
             </div>
 
-            {/* Email */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                 Email
@@ -189,7 +179,6 @@ function RegisterPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                 Password
@@ -213,7 +202,6 @@ function RegisterPage() {
               </div>
             </div>
 
-            {/* Referral code */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                 Kode Referral{" "}
@@ -233,7 +221,6 @@ function RegisterPage() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={loading}
@@ -250,14 +237,12 @@ function RegisterPage() {
             </button>
           </div>
 
-          {/* Divider */}
           <div className="mt-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-white/8" />
             <span className="text-xs text-white/25">atau</span>
             <div className="h-px flex-1 bg-white/8" />
           </div>
 
-          {/* Login link */}
           <p className="mt-6 text-center text-sm text-white/40">
             Sudah punya akun?{" "}
             <Link
@@ -269,7 +254,6 @@ function RegisterPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <p className="mt-6 text-center text-xs text-white/20">
           Dengan mendaftar, kamu menyetujui Syarat & Ketentuan Eventura
         </p>

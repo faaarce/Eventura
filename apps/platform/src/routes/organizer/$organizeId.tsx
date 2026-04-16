@@ -171,10 +171,7 @@ function OrganizerPage() {
 
         {/* Past events */}
         {pastEvents.length > 0 && (
-          <section
-            className="rise-in mt-10"
-            style={{ animationDelay: "80ms" }}
-          >
+          <section className="rise-in mt-10" style={{ animationDelay: "80ms" }}>
             <h2 className="text-lg font-bold text-white/60 sm:text-xl">
               Past events
             </h2>
@@ -247,7 +244,7 @@ function OrganizerPage() {
                               day: "numeric",
                               month: "short",
                               year: "numeric",
-                            }
+                            },
                           )}
                         </p>
                       </div>
@@ -339,17 +336,15 @@ function EventRow({
 
   return (
     <Link
-      to="/events/$eventId"
-      params={{ eventId: event.id }}
+      to="/events/$slug"
+      params={{ slug: event.slug }}
       className={`group flex items-center gap-4 bg-white/[0.02] p-4 no-underline transition-colors hover:bg-white/[0.06] sm:p-5 ${
         dimmed ? "opacity-60 hover:opacity-80" : ""
       }`}
     >
       <div
         className={`h-14 w-14 shrink-0 rounded-xl sm:h-16 sm:w-16 ${
-          dimmed
-            ? "bg-white/6"
-            : `bg-linear-to-br ${gradient}`
+          dimmed ? "bg-white/6" : `bg-linear-to-br ${gradient}`
         }`}
       >
         {event.imageUrl && (
@@ -372,10 +367,14 @@ function EventRow({
       </div>
 
       <div className="hidden shrink-0 text-right sm:block">
-        <p className={`text-sm font-semibold ${dimmed ? "text-white/50" : "text-white/70"}`}>
+        <p
+          className={`text-sm font-semibold ${dimmed ? "text-white/50" : "text-white/70"}`}
+        >
           {event.venue}
         </p>
-        <p className={`mt-0.5 text-xs ${dimmed ? "text-white/30" : "text-white/40"}`}>
+        <p
+          className={`mt-0.5 text-xs ${dimmed ? "text-white/30" : "text-white/40"}`}
+        >
           {event.location}
         </p>
       </div>

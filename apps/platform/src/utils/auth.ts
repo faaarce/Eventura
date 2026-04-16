@@ -1,41 +1,59 @@
-import Cookies from "js-cookie";
 import { logoutApi } from "./api";
 
 export interface AuthUser {
-  userId: string;
+  id: string;
+  name: string;
   email: string;
   role: "CUSTOMER" | "ORGANIZER";
+  referralCode: string;
+  profileImage?: string | null;
 }
 
-export function decodeToken(token: string): AuthUser | null {
+const STORAGE_KEY = "eventura-user";
+
+/**
+ * Baca user langsung dari localStorage.
+ * Dipake di TanStack Router `beforeLoad` karena jalan sebelum React mount
+ * (Jotai belum ke-hydrate).
+ *
+ * Di dalam React component, prefer pakai:
+ *   const user = useAtomValue(userAtom)
+ */
+export function getCurrentUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
   try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const decoded = JSON.parse(atob(payload));
-    return {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role,
-    };
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    // Jotai atomWithStorage wrap value dalam JSON.stringify
+    return JSON.parse(stored);
   } catch {
     return null;
   }
 }
 
-export function getCurrentUser(): AuthUser | null {
-  if (typeof window === "undefined") return null;
-  const token = Cookies.get("token");
-  if (!token) return null;
-  return decodeToken(token);
-}
-
-
 export function isAuthenticated(): boolean {
   return getCurrentUser() !== null;
 }
 
-
+/**
+ * Logout flow:
+ * 1. Call backend → clear httpOnly cookies
+ * 2. Clear localStorage
+ *
+ * NOTE: Di component React, setelah panggil logout() ini,
+ * panggil juga `setUser(null)` dari Jotai biar state langsung update.
+ * Contoh:
+ *   const setUser = useSetAtom(userAtom);
+ *   await logout();
+ *   setUser(null);
+ */
 export async function logout(): Promise<void> {
-  await logoutApi();       // call backend, clear httpOnly cookie
-  Cookies.remove("token"); // clear access token
+  try {
+    await logoutApi();
+  } catch {
+    // Ignore — backend mungkin udah expire
+  }
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }

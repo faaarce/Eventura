@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import * as authService from "../services/auth.service.js";
 import z from "zod";
 import { cookieOptions } from "../config/cookie.js";
+import { ApiError } from "../utils/helpers.js";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -26,6 +27,14 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(6, "Password baru minimal 6 karakter"),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email"),
+});
+
+const resetPasswordSchema = z.object({
+  newPassword: z.string().min(6, "Password minimal 6 karakter"),
+});
+
 export async function register(
   req: Request,
   res: Response,
@@ -36,14 +45,19 @@ export async function register(
     const { user, accessToken, refreshToken } =
       await authService.register(data);
 
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
     res.cookie("refreshToken", refreshToken, {
       ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 hari
     });
 
+    // Response body cuma user info (gak ada token!)
     res.status(201).json({
       success: true,
-      data: { user, token: accessToken },
+      data: { user },
     });
   } catch (err) {
     next(err);
@@ -55,7 +69,10 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     const data = loginSchema.parse(req.body);
     const { user, accessToken, refreshToken } = await authService.login(data);
 
-    // Set refresh token as httpOnly cookie
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
     res.cookie("refreshToken", refreshToken, {
       ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -63,7 +80,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     res.json({
       success: true,
-      data: { user, token: accessToken },
+      data: { user },
     });
   } catch (err) {
     next(err);
@@ -90,7 +107,7 @@ export async function updateProfile(
 ) {
   try {
     const data = updateProfileSchema.parse(req.body);
-    const file = req.file; // optional profile image
+    const file = req.file;
     const result = await authService.updateProfile(
       req.user!.userId,
       data,
@@ -116,16 +133,6 @@ export async function changePassword(
   }
 }
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Invalid email"),
-});
-
-const resetPasswordSchema = z.object({
-  token: z.string().min(1, "Token is required"),
-  newPassword: z.string().min(6, "Password minimal 6 karakter"),
-});
-
-// 2. Tambah handler functions:
 export async function forgotPassword(
   req: Request,
   res: Response,
@@ -147,9 +154,17 @@ export async function resetPassword(
 ) {
   try {
     const data = resetPasswordSchema.parse(req.body);
+    const userId = req.user!.userId;
+    const token = req.headers.authorization?.startsWith("Bearer ")
+      ? req.headers.authorization.split(" ")[1]
+      : null;
+    if (!token) {
+      throw new ApiError(401, "Reset token tidak ada");
+    }
     const result = await authService.resetPassword(
-      data.token,
+      userId,
       data.newPassword,
+      token,
     );
     res.json({ success: true, data: result });
   } catch (err) {
@@ -179,16 +194,21 @@ export async function refreshToken(
     const token = req.cookies?.refreshToken;
     const result = await authService.refresh(token);
 
+    // Set access token baru di cookie — frontend gak perlu handle
+    res.cookie("accessToken", result.accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
+
     res.json({
       success: true,
-      data: { token: result.accessToken },
+      message: "Refresh success",
     });
   } catch (err) {
     next(err);
   }
 }
 
-// TAMBAH function logout:
 export async function logoutUser(
   req: Request,
   res: Response,
@@ -198,6 +218,8 @@ export async function logoutUser(
     const token = req.cookies?.refreshToken;
     const result = await authService.logout(token);
 
+    // Clear BOTH cookies
+    res.clearCookie("accessToken", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
 
     res.json({ success: true, data: result });

@@ -20,6 +20,7 @@
     "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
     "@tanstack/router-plugin": "^1.132.0",
+    "jotai": "^2.19.1",
     "js-cookie": "^3.0.5",
     "ky": "^1.14.3",
     "lucide-react": "^0.545.0",

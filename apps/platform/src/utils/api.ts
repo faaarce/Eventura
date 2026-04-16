@@ -1,51 +1,36 @@
-import ky, { type BeforeRequestHook, type AfterResponseHook } from "ky";
-import Cookies from "js-cookie";
+import ky from "ky";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const api = ky.create({
-  prefixUrl: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
-  credentials: "include", // ← PENTING: kirim cookie (refreshToken) ke backend
+  prefixUrl: API_URL,
+  credentials: "include", // ← PENTING: cookie auto-kirim (accessToken + refreshToken)
   hooks: {
-    beforeRequest: [
-      (request) => {
-        const token = Cookies.get("token");
-        if (token) {
-          request.headers.set("Authorization", `Bearer ${token}`);
-        }
-      },
-    ],
     afterResponse: [
       // Auto-refresh: kalau dapat 401, coba refresh token
-      async (request, options, response) => {
+      async (request, _options, response) => {
         if (response.status !== 401) return response;
 
-        // Jangan infinite loop — kalau refresh endpoint sendiri 401, stop
+        // Jangan infinite loop — skip endpoint auth yang relevan
         if (request.url.includes("/auth/refresh")) return response;
         if (request.url.includes("/auth/login")) return response;
+        if (request.url.includes("/auth/register")) return response;
 
         try {
-          // Call refresh endpoint — browser otomatis kirim refreshToken cookie
+          // Call refresh — browser auto kirim refreshToken cookie
+          // Backend set accessToken cookie baru
           const refreshRes = await ky
-            .post(
-              `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/auth/refresh`,
-              { credentials: "include" },
-            )
-            .json<{ success: boolean; data: { token: string } }>();
+            .post(`${API_URL}/auth/refresh`, { credentials: "include" })
+            .json<{ success: boolean }>();
 
-          if (refreshRes.success && refreshRes.data.token) {
-            // Simpan access token baru
-            Cookies.set("token", refreshRes.data.token, { expires: 1 });
-
-            // Retry request original dengan token baru
-            request.headers.set(
-              "Authorization",
-              `Bearer ${refreshRes.data.token}`,
-            );
+          if (refreshRes.success) {
+            // Retry request original — accessToken cookie udah keset baru
             return ky(request);
           }
         } catch {
           // Refresh gagal — force logout
-          Cookies.remove("token");
           if (typeof window !== "undefined") {
+            localStorage.removeItem("eventura-user");
             window.location.href = "/auth/login";
           }
         }
@@ -55,6 +40,55 @@ const api = ky.create({
     ],
   },
 });
+
+// ============ AUTH ============
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: "CUSTOMER" | "ORGANIZER";
+  referralCode: string;
+  profileImage?: string | null;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
+export async function loginApi(input: {
+  email: string;
+  password: string;
+}): Promise<AuthUser> {
+  const res = await api
+    .post("auth/login", { json: input })
+    .json<ApiResponse<{ user: AuthUser }>>();
+  return res.data.user;
+}
+
+export async function registerApi(input: {
+  name: string;
+  email: string;
+  password: string;
+  role: "CUSTOMER" | "ORGANIZER";
+  referralCode?: string;
+}): Promise<AuthUser> {
+  const res = await api
+    .post("auth/register", { json: input })
+    .json<ApiResponse<{ user: AuthUser }>>();
+  return res.data.user;
+}
+
+export async function logoutApi(): Promise<void> {
+  try {
+    await api.post("auth/logout").json();
+  } catch {
+    // Ignore — logout best-effort
+  }
+}
+
+// ============ EVENTS ============
 
 export interface ApiTicketType {
   id: string;
@@ -66,6 +100,7 @@ export interface ApiTicketType {
 
 export interface ApiEvent {
   id: string;
+  slug: string;
   name: string;
   description: string;
   category: string;
@@ -83,11 +118,6 @@ export interface ApiEvent {
     profileImage: string | null;
     email?: string;
   };
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
 }
 
 interface EventListData {
@@ -129,6 +159,14 @@ export async function fetchEventById(id: string): Promise<ApiEvent> {
   return res.data;
 }
 
+export async function fetchEventBySlug(slug: string): Promise<ApiEvent> {
+  const res = await api
+    .get(`events/slug/${slug}`)
+    .json<ApiResponse<ApiEvent>>();
+  return res.data;
+}
+ 
+
 export async function verifyVoucher(
   eventId: string,
   code: string,
@@ -143,6 +181,8 @@ export async function verifyVoucher(
   >();
   return res.data;
 }
+
+// ============ TRANSACTIONS ============
 
 export type TransactionStatus =
   | "WAITING_FOR_PAYMENT"
@@ -188,8 +228,6 @@ interface CreateTransactionInput {
   usePoints?: boolean;
 }
 
-// ============ Transaction helpers ============
-
 export async function createTransaction(
   input: CreateTransactionInput,
 ): Promise<ApiTransaction> {
@@ -229,7 +267,8 @@ export async function cancelTransaction(
     .json<ApiResponse<ApiTransaction>>();
   return res.data;
 }
-// ============ Profile types ============
+
+// ============ PROFILE ============
 
 export interface ApiUserProfile {
   id: string;
@@ -278,8 +317,6 @@ interface TransactionListData {
   };
 }
 
-// ============ Profile helpers ============
-
 export async function fetchProfile(): Promise<ApiUserProfile> {
   const res = await api.get("auth/profile").json<ApiResponse<ApiUserProfile>>();
   return res.data;
@@ -298,7 +335,65 @@ export async function fetchMyTransactions(
     .json<ApiResponse<TransactionListData>>();
   return res.data;
 }
-// ============ Review types ============
+
+export async function updateProfile(
+  input: { name?: string },
+  file?: File,
+): Promise<{
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  referralCode: string;
+  profileImage: string | null;
+  createdAt: string;
+}> {
+  const formData = new FormData();
+  if (input.name) formData.append("name", input.name);
+  if (file) formData.append("profileImage", file);
+
+  const res = await api
+    .patch("auth/profile", { body: formData })
+    .json<ApiResponse<any>>();
+  return res.data;
+}
+
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ message: string }> {
+  const res = await api
+    .patch("auth/change-password", { json: input })
+    .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}
+
+export async function forgotPassword(
+  email: string,
+): Promise<{ message: string }> {
+  const res = await api
+    .post("auth/forgot-password", { json: { email } })
+    .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  const res = await ky
+    .post(`${API_URL}/auth/reset-password`, {
+      json: { newPassword }, // ← body CUMA newPassword, token gak masuk body
+      headers: {
+        Authorization: `Bearer ${token}`, // ← token di header
+      },
+    })
+    .json<ApiResponse<{ message: string }>>();
+  return res.data;
+}
+
+// ============ REVIEWS ============
 
 export interface ApiReview {
   id: string;
@@ -326,8 +421,6 @@ interface ReviewListData {
   };
 }
 
-// ============ Review helpers ============
-
 export async function fetchEventReviews(
   eventId: string,
   params: { page?: number; limit?: number } = {},
@@ -352,7 +445,7 @@ export async function createReview(
   return res.data;
 }
 
-// ============ Dashboard types ============
+// ============ DASHBOARD ============
 
 export interface ApiDashboardStats {
   totalRevenue: number;
@@ -371,8 +464,6 @@ export interface ApiDashboardStats {
   }[];
 }
 
-// ============ Dashboard helpers ============
-
 export async function fetchDashboardStats(
   params: { year?: number; month?: number; day?: number } = {},
 ): Promise<ApiDashboardStats> {
@@ -386,10 +477,12 @@ export async function fetchDashboardStats(
     .json<ApiResponse<ApiDashboardStats>>();
   return res.data;
 }
-// ============ Organizer event types ============
+
+// ============ ORGANIZER EVENTS ============
 
 export interface ApiOrganizerEvent {
   id: string;
+  slug: string;
   name: string;
   description: string;
   category: string;
@@ -419,7 +512,7 @@ interface CreateEventInput {
   category: string;
   location: string;
   venue: string;
-  startDate: string; // ISO string
+  startDate: string;
   endDate: string;
   isFree: boolean;
   imageUrl?: string;
@@ -429,8 +522,6 @@ interface CreateEventInput {
     totalSeats: number;
   }[];
 }
-
-// ============ Organizer event helpers ============
 
 export async function fetchMyEvents(
   params: { page?: number; limit?: number } = {},
@@ -467,7 +558,46 @@ export async function createEvent(
   return res.data;
 }
 
-// ============ Organizer transaction types ============
+interface UpdateEventInput {
+  name?: string;
+  description?: string;
+  category?: string;
+  location?: string;
+  venue?: string;
+  startDate?: string;
+  endDate?: string;
+  imageUrl?: string;
+}
+
+export async function updateEvent(
+  eventId: string,
+  input: UpdateEventInput,
+  file?: File,
+): Promise<ApiOrganizerEvent> {
+  if (file) {
+    const formData = new FormData();
+    if (input.name) formData.append("name", input.name);
+    if (input.description) formData.append("description", input.description);
+    if (input.category) formData.append("category", input.category);
+    if (input.location) formData.append("location", input.location);
+    if (input.venue) formData.append("venue", input.venue);
+    if (input.startDate) formData.append("startDate", input.startDate);
+    if (input.endDate) formData.append("endDate", input.endDate);
+    formData.append("image", file);
+
+    const res = await api
+      .put(`events/${eventId}`, { body: formData })
+      .json<ApiResponse<ApiOrganizerEvent>>();
+    return res.data;
+  }
+
+  const res = await api
+    .put(`events/${eventId}`, { json: input })
+    .json<ApiResponse<ApiOrganizerEvent>>();
+  return res.data;
+}
+
+// ============ ORGANIZER TRANSACTIONS ============
 
 export interface ApiOrganizerTransaction {
   id: string;
@@ -506,8 +636,6 @@ interface OrganizerTransactionListData {
   };
 }
 
-// ============ Organizer transaction helpers ============
-
 export async function fetchOrganizerTransactions(
   params: { status?: TransactionStatus; page?: number; limit?: number } = {},
 ): Promise<OrganizerTransactionListData> {
@@ -540,7 +668,7 @@ export async function rejectTransaction(
   return res.data;
 }
 
-// ============ Voucher types ============
+// ============ VOUCHERS ============
 
 export interface ApiVoucher {
   id: string;
@@ -562,8 +690,6 @@ interface CreateVoucherInput {
   maxUsage: number;
 }
 
-// ============ Voucher helpers ============
-
 export async function fetchEventVouchers(
   eventId: string,
 ): Promise<ApiVoucher[]> {
@@ -583,7 +709,7 @@ export async function createVoucher(
   return res.data;
 }
 
-// ============ Attendee types ============
+// ============ ATTENDEES ============
 
 export interface ApiAttendee {
   name: string;
@@ -625,96 +751,7 @@ export async function fetchEventAttendees(
   return res.data;
 }
 
-export async function updateProfile(
-  input: { name?: string },
-  file?: File,
-): Promise<{
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  referralCode: string;
-  profileImage: string | null;
-  createdAt: string;
-}> {
-  const formData = new FormData();
-  if (input.name) formData.append("name", input.name);
-  if (file) formData.append("profileImage", file);
-
-  const res = await api
-    .patch("auth/profile", { body: formData })
-    .json<ApiResponse<any>>();
-  return res.data;
-}
-
-export async function changePassword(input: {
-  currentPassword: string;
-  newPassword: string;
-}): Promise<{ message: string }> {
-  const res = await api
-    .patch("auth/change-password", { json: input })
-    .json<ApiResponse<{ message: string }>>();
-  return res.data;
-}
-
-interface UpdateEventInput {
-  name?: string;
-  description?: string;
-  category?: string;
-  location?: string;
-  venue?: string;
-  startDate?: string;
-  endDate?: string;
-  imageUrl?: string;
-}
-
-export async function updateEvent(
-  eventId: string,
-  input: UpdateEventInput,
-  file?: File,
-): Promise<ApiOrganizerEvent> {
-  if (file) {
-    const formData = new FormData();
-    if (input.name) formData.append("name", input.name);
-    if (input.description) formData.append("description", input.description);
-    if (input.category) formData.append("category", input.category);
-    if (input.location) formData.append("location", input.location);
-    if (input.venue) formData.append("venue", input.venue);
-    if (input.startDate) formData.append("startDate", input.startDate);
-    if (input.endDate) formData.append("endDate", input.endDate);
-    formData.append("image", file);
-
-    const res = await api
-      .put(`events/${eventId}`, { body: formData })
-      .json<ApiResponse<ApiOrganizerEvent>>();
-    return res.data;
-  }
-
-  // Tanpa file — kirim JSON biasa
-  const res = await api
-    .put(`events/${eventId}`, { json: input })
-    .json<ApiResponse<ApiOrganizerEvent>>();
-  return res.data;
-}
-
-export async function forgotPassword(
-  email: string,
-): Promise<{ message: string }> {
-  const res = await api
-    .post("auth/forgot-password", { json: { email } })
-    .json<ApiResponse<{ message: string }>>();
-  return res.data;
-}
-
-export async function resetPassword(
-  token: string,
-  newPassword: string,
-): Promise<{ message: string }> {
-  const res = await api
-    .post("auth/reset-password", { json: { token, newPassword } })
-    .json<ApiResponse<{ message: string }>>();
-  return res.data;
-}
+// ============ ORGANIZER PUBLIC PROFILE ============
 
 export interface ApiOrganizerProfile {
   id: string;
@@ -743,12 +780,3 @@ export async function fetchOrganizerProfile(
     .json<ApiResponse<ApiOrganizerProfile>>();
   return res.data;
 }
-
-export async function logoutApi(): Promise<void> {
-  try {
-    await api.post("auth/logout").json();
-  } catch {
-    // Ignore — logout best-effort
-  }
-}
- 

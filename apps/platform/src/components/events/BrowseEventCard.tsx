@@ -1,4 +1,3 @@
-
 import { MapPin, CalendarDays } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { ApiEvent } from "@/utils/api";
@@ -35,28 +34,31 @@ function formatPrice(price: number): string {
 
 export function BrowseEventCard({ event }: BrowseEventCardProps) {
   const categoryKey = event.category.toLowerCase();
-  const gradient = categoryGradients[categoryKey] ?? "from-[#328f97] to-[#1a5c62]";
+  const gradient =
+    categoryGradients[categoryKey] ?? "from-[#328f97] to-[#1a5c62]";
 
   // Harga termurah dari ticketTypes
   const minPrice = event.isFree
     ? 0
     : event.ticketTypes.length > 0
-    ? Math.min(...event.ticketTypes.map((t) => t.price))
-    : 0;
+      ? Math.min(...event.ticketTypes.map((t) => t.price))
+      : 0;
 
   // Total seat tersedia
   const totalAvailable = event.ticketTypes.reduce(
     (sum, t) => sum + t.availableSeats,
-    0
+    0,
   );
 
   return (
     <Link
-      to="/events/$eventId"
-      params={{ eventId: event.id }}
+      to="/events/$slug"
+      params={{ slug: event.slug }}
       className="group flex flex-col overflow-hidden rounded-xl border border-white/8 bg-white/4 no-underline transition-all duration-200 hover:-translate-y-1 hover:border-white/18 hover:bg-white/8"
     >
-      <div className={`relative aspect-square w-full bg-linear-to-br ${gradient}`}>
+      <div
+        className={`relative aspect-square w-full bg-linear-to-br ${gradient}`}
+      >
         {event.imageUrl && (
           <img
             src={event.imageUrl}

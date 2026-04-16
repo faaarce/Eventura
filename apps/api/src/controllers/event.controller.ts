@@ -1,3 +1,4 @@
+
 import type { Request, Response, NextFunction } from "express";
 import * as eventService from "../services/event.service.js";
 import z from "zod";
@@ -13,22 +14,28 @@ const createEventSchema = z.object({
   isFree: z.boolean(),
   imageUrl: z.string().optional(),
   ticketTypes: z
-    .array(z.object({ name: z.string().min(1), price: z.number().min(0), totalSeats: z.number().min(1) }))
+    .array(
+      z.object({
+        name: z.string().min(1),
+        price: z.number().min(0),
+        totalSeats: z.number().min(1),
+      }),
+    )
     .min(1, "At least one ticket type is required"),
 });
 
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
-    // Multer pake multipart, jadi ticketTypes dikirim sebagai JSON string
     const body = {
       ...req.body,
       isFree: req.body.isFree === "true" || req.body.isFree === true,
-      ticketTypes: typeof req.body.ticketTypes === "string"
-        ? JSON.parse(req.body.ticketTypes)
-        : req.body.ticketTypes,
+      ticketTypes:
+        typeof req.body.ticketTypes === "string"
+          ? JSON.parse(req.body.ticketTypes)
+          : req.body.ticketTypes,
     };
     const data = createEventSchema.parse(body);
-    const file = req.file; // optional event image
+    const file = req.file;
     const result = await eventService.create(req.user!.userId, data, file);
     res.status(201).json({ success: true, data: result });
   } catch (err) {
@@ -38,14 +45,21 @@ export async function create(req: Request, res: Response, next: NextFunction) {
 
 export async function findAll(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await eventService.findAll(req.query as Record<string, string>);
+    const result = await eventService.findAll(
+      req.query as Record<string, string>,
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 }
 
-export async function findById(req: Request, res: Response, next: NextFunction) {
+// Find by UUID (internal use / backward compat)
+export async function findById(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
     const result = await eventService.findById(req.params.id);
     res.json({ success: true, data: result });
@@ -54,28 +68,57 @@ export async function findById(req: Request, res: Response, next: NextFunction) 
   }
 }
 
-export async function update(req: Request, res: Response, next: NextFunction) {
+// ← TAMBAH: Find by slug (public URL lookup)
+export async function findBySlug(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   try {
-    const file = req.file; // optional event image
-    const result = await eventService.update(req.params.id, req.user!.userId, req.body, file);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-}
- 
-export async function remove(req: Request, res: Response, next: NextFunction) {
-  try {
-    const result = await eventService.remove(req.params.id, req.user!.userId);
+    const result = await eventService.findBySlug(req.params.slug);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 }
 
-export async function getMyEvents(req: Request, res: Response, next: NextFunction) {
+export async function update(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await eventService.getOrganizerEvents(req.user!.userId, req.query as Record<string, string>);
+    const file = req.file;
+    const result = await eventService.update(
+      req.params.id,
+      req.user!.userId,
+      req.body,
+      file,
+    );
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function remove(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await eventService.remove(
+      req.params.id,
+      req.user!.userId,
+    );
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getMyEvents(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const result = await eventService.getOrganizerEvents(
+      req.user!.userId,
+      req.query as Record<string, string>,
+    );
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

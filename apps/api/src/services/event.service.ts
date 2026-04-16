@@ -1,6 +1,11 @@
+// ============================================================
+// REPLACE apps/api/src/services/event.service.ts FULL
+// ============================================================
+
 import { prisma } from "../utils/prisma.js";
 import { ApiError } from "../utils/helpers.js";
 import { uploadImage, deleteImage } from "../utils/cloudinary.js";
+import { generateSlug } from "../utils/generate-slug.js"; // ← TAMBAH IMPORT
 
 interface CreateEventInput {
   name: string;
@@ -27,6 +32,36 @@ interface EventQuery {
   organizerId?: string;
 }
 
+/**
+ * Helper: generate unique slug.
+ * Kalau slug udah dipake, tambahin counter (-1, -2, ...).
+ * excludeEventId: kalau lagi update, exclude event itu sendiri dari check.
+ */
+async function generateUniqueSlug(
+  name: string,
+  excludeEventId?: string,
+): Promise<string> {
+  const baseSlug = generateSlug(name);
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const existing = await prisma.event.findFirst({
+      where: {
+        slug,
+        ...(excludeEventId && { NOT: { id: excludeEventId } }),
+      },
+    });
+
+    if (!existing) break; // slug available!
+
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+}
+
 export async function create(
   organizerId: string,
   input: CreateEventInput,
@@ -43,6 +78,9 @@ export async function create(
     throw new ApiError(400, "Free events cannot have paid ticket types");
   }
 
+  // Generate unique slug
+  const slug = await generateUniqueSlug(input.name);
+
   // Upload image kalau ada file
   let imageUrl = input.imageUrl;
   if (file) {
@@ -53,6 +91,7 @@ export async function create(
   return await prisma.event.create({
     data: {
       name: input.name,
+      slug, // ← TAMBAHIN SLUG
       description: input.description,
       category: input.category,
       location: input.location,
@@ -120,9 +159,31 @@ export async function findAll(query: EventQuery) {
   };
 }
 
+/**
+ * Find event by UUID (internal use — transaction, voucher, dll).
+ * JANGAN HAPUS — masih dipake di banyak tempat.
+ */
 export async function findById(id: string) {
   const event = await prisma.event.findUnique({
     where: { id },
+    include: {
+      ticketTypes: true,
+      organizer: {
+        select: { id: true, name: true, profileImage: true, email: true },
+      },
+    },
+  });
+  if (!event) throw new ApiError(404, "Event not found");
+  return event;
+}
+
+/**
+ * Find event by SLUG (public URL lookup).
+ * Dipake buat halaman detail event di frontend.
+ */
+export async function findBySlug(slug: string) {
+  const event = await prisma.event.findUnique({
+    where: { slug },
     include: {
       ticketTypes: true,
       organizer: {
@@ -145,13 +206,19 @@ export async function update(
   if (event.organizerId !== organizerId)
     throw new ApiError(403, "You can only edit your own events");
 
+  // Regenerate slug kalau name berubah
+  let slug = event.slug;
+  if (input.name && input.name !== event.name) {
+    slug = await generateUniqueSlug(input.name, eventId);
+  }
+
   let imageUrl: string | undefined;
   if (file) {
     if (event.imageUrl) {
       try {
         await deleteImage(event.imageUrl);
       } catch {
-   
+        // ignore
       }
     }
     const { secure_url } = await uploadImage(file, "eventura/events");
@@ -162,6 +229,7 @@ export async function update(
     where: { id: eventId },
     data: {
       ...(input.name && { name: input.name }),
+      ...(slug !== event.slug && { slug }), // ← update slug kalau berubah
       ...(input.description && { description: input.description }),
       ...(input.category && { category: input.category }),
       ...(input.location && { location: input.location }),

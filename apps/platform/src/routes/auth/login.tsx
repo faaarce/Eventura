@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import Cookies from "js-cookie";
-
+import { useSetAtom } from "jotai";
 import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useState } from "react";
-import { decodeToken } from "@/utils/auth";
+import { userAtom } from "@/stores/auth";
+import { loginApi } from "@/utils/api";
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginPage,
@@ -11,6 +11,7 @@ export const Route = createFileRoute("/auth/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const setUser = useSetAtom(userAtom); // ← Jotai setter
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -30,32 +31,25 @@ function LoginPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(form),
-      });
+      // loginApi return user, cookies di-set otomatis oleh backend
+      const user = await loginApi(form);
 
-      const data = await res.json();
+      // Simpan user ke Jotai (auto-persist ke localStorage)
+      setUser(user);
 
-      if (!res.ok) {
-        setError(data.message || "Login gagal");
-        return;
-      }
-
-      // Save token & redirect
-      Cookies.set("token", data.data.token, { expires: 1 });
-
-      // Setelah Cookies.set("token", ...):
-      const user = decodeToken(data.data.token);
-      if (user?.role === "ORGANIZER") {
+      // Redirect based on role
+      if (user.role === "ORGANIZER") {
         navigate({ to: "/organizer/dashboard" });
       } else {
         navigate({ to: "/events" });
       }
-    } catch {
-      setError("Tidak bisa terhubung ke server");
+    } catch (err: any) {
+      try {
+        const body = await err.response?.json();
+        setError(body?.message || "Login gagal");
+      } catch {
+        setError("Tidak bisa terhubung ke server");
+      }
     } finally {
       setLoading(false);
     }
@@ -63,14 +57,12 @@ function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4 py-12">
-      {/* Background effects */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-[#328f97]/8 blur-[120px]" />
         <div className="absolute -bottom-32 -left-32 h-[400px] w-[400px] rounded-full bg-[#d4537e]/5 blur-[100px]" />
       </div>
 
       <div className="rise-in relative w-full max-w-md">
-        {/* Logo */}
         <Link
           to="/"
           className="mb-8 flex items-center justify-center gap-2.5 no-underline"
@@ -86,7 +78,6 @@ function LoginPage() {
           </span>
         </Link>
 
-        {/* Card */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm sm:p-8">
           <h1 className="text-center text-2xl font-bold text-white">
             Selamat Datang
@@ -102,7 +93,6 @@ function LoginPage() {
           )}
 
           <div className="mt-6 space-y-4">
-            {/* Email */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                 Email
@@ -119,7 +109,6 @@ function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-xs font-semibold uppercase tracking-wider text-white/50">
@@ -154,7 +143,6 @@ function LoginPage() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={loading}
@@ -171,14 +159,12 @@ function LoginPage() {
             </button>
           </div>
 
-          {/* Divider */}
           <div className="mt-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-white/8" />
             <span className="text-xs text-white/25">atau</span>
             <div className="h-px flex-1 bg-white/8" />
           </div>
 
-          {/* Register link */}
           <p className="mt-6 text-center text-sm text-white/40">
             Belum punya akun?{" "}
             <Link
@@ -190,7 +176,6 @@ function LoginPage() {
           </p>
         </div>
 
-        {/* Footer */}
         <p className="mt-6 text-center text-xs text-white/20">
           © 2026 Eventura. All rights reserved.
         </p>

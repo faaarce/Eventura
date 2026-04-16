@@ -13,6 +13,8 @@ import {
   LogOut,
   ArrowLeft,
 } from "lucide-react";
+import { useAtomValue, useSetAtom } from "jotai";
+import { userAtom } from "@/stores/auth";
 import { useState, useEffect } from "react";
 import { getCurrentUser, logout } from "@/utils/auth";
 
@@ -34,18 +36,13 @@ export const Route = createFileRoute("/organizer/dashboard")({
 
 function DashboardLayout() {
   const navigate = useNavigate();
-  const [userEmail, setUserEmail] = useState("Organizer");
-
-  useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      setUserEmail(user.email);
-    }
-  }, []);
+  const user = useAtomValue(userAtom);
+  const setUser = useSetAtom(userAtom);
 
   const handleLogout = async () => {
     if (!confirm("Yakin mau logout?")) return;
     await logout();
+    setUser(null);
     navigate({ to: "/auth/login" });
   };
 
@@ -81,10 +78,10 @@ function DashboardLayout() {
             </Link>
             <div className="hidden items-center gap-2 sm:flex">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-sm font-bold text-white">
-                {userEmail.charAt(0).toUpperCase()}
+                {user?.email.charAt(0).toUpperCase() || "?"}
               </div>
               <span className="text-sm font-semibold text-white/70">
-                {userEmail}
+                {user?.email || "Organizer"}
               </span>
             </div>
             <button

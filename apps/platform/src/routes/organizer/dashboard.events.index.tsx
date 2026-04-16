@@ -233,8 +233,8 @@ function OrganizerEventCard({ event }: { event: ApiOrganizerEvent }) {
             Edit
           </Link>
           <Link
-            to="/events/$eventId"
-            params={{ eventId: event.id }}
+            to="/events/$slug"
+            params={{ slug: event.slug }}
             className="flex items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/4 px-2 py-2 text-xs font-semibold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
           >
             <Eye size={12} />

@@ -1,5 +1,5 @@
 import {
-  fetchEventById,
+  fetchEventBySlug,
   verifyVoucher,
   createTransaction,
   fetchProfile,
@@ -23,10 +23,10 @@ import { useState, useMemo } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/events/$eventId/checkout")({
+export const Route = createFileRoute("/events/$slug/checkout")({
   component: CheckoutPage,
   loader: async ({ params }) => {
-    const event = await fetchEventById(params.eventId);
+    const event = await fetchEventBySlug(params.slug);
     let totalPoints = 0;
     try {
       const profile = await fetchProfile();
@@ -168,8 +168,8 @@ function CheckoutPage() {
       <header className="sticky top-0 z-50 border-b border-white/8 bg-[#0a0a0a]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3.5 sm:px-6">
           <Link
-            to="/events/$eventId"
-            params={{ eventId: event.id }}
+            to="/events/$slug"
+            params={{ slug: event.slug }}
             className="flex items-center gap-2 text-sm font-semibold text-white/50 no-underline transition-colors hover:text-white"
           >
             <ArrowLeft size={18} />
@@ -195,8 +195,8 @@ function CheckoutPage() {
           </nav>
 
           <Link
-            to="/events/$eventId"
-            params={{ eventId: event.id }}
+            to="/events/$slug"
+            params={{ slug: event.slug }}
             className="flex h-8 w-8 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/8 hover:text-white"
           >
             <X size={18} />

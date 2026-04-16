@@ -39,6 +39,8 @@ import {
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
 import { logout, isAuthenticated } from "@/utils/auth";
+import { useAtomValue, useSetAtom } from "jotai";
+import { userAtom } from "@/stores/auth";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -166,7 +168,7 @@ function ProfilePage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
-
+  const setUser = useSetAtom(userAtom);
   // Change password state
   const [pwOpen, setPwOpen] = useState(false);
   const [pwForm, setPwForm] = useState({
@@ -191,6 +193,7 @@ function ProfilePage() {
   const handleLogout = async () => {
     if (!confirm("Yakin mau logout?")) return;
     await logout();
+    setUser(null); // ← clear Jotai atom
     navigate({ to: "/auth/login" });
   };
 

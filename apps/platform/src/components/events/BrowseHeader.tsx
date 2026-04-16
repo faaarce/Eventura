@@ -1,8 +1,8 @@
 import { Search, Sparkles, Menu, X, User } from "lucide-react";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import Cookies from "js-cookie";
-import { getCurrentUser } from "@/utils/auth";
+import { useAtomValue } from "jotai";
+import { userAtom, isAuthenticatedAtom } from "@/stores/auth";
 
 interface BrowseHeaderProps {
   search: string;
@@ -12,8 +12,9 @@ interface BrowseHeaderProps {
 export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isLoggedIn = !!Cookies.get("token");
-  const user = getCurrentUser();
+  // Dari Jotai, bukan Cookies!
+  const user = useAtomValue(userAtom);
+  const isLoggedIn = useAtomValue(isAuthenticatedAtom);
   const isOrganizer = user?.role === "ORGANIZER";
 
   return (
@@ -39,8 +40,6 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
           />
         </div>
 
-        {/* DESKTOP NAV */}
-        {/* DESKTOP NAV */}
         <nav className="ml-auto hidden items-center gap-6 text-sm font-semibold md:flex">
           <Link to="/events" className="text-white no-underline">
             Browse events
@@ -74,7 +73,6 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
           )}
         </nav>
 
-        {/* MOBILE MENU BUTTON */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="ml-auto text-white md:hidden"
@@ -83,7 +81,6 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
         </button>
       </div>
 
-      {/* MOBILE SEARCH */}
       <div className="border-t border-white/8 px-4 py-3 md:hidden">
         <div className="flex items-center gap-2.5 rounded-full border border-white/10 bg-white/8 px-4 py-2.5">
           <Search size={16} className="shrink-0 text-white/40" />
@@ -97,7 +94,6 @@ export function BrowseHeader({ search, onSearchChange }: BrowseHeaderProps) {
         </div>
       </div>
 
-      {/* MOBILE NAV */}
       {menuOpen && (
         <nav className="flex flex-col gap-1 border-t border-white/8 px-4 py-4 md:hidden">
           <Link
