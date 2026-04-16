@@ -3,7 +3,8 @@ import { useSetAtom } from "jotai";
 import { Sparkles, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { userAtom } from "@/stores/auth";
-import { loginApi } from "@/utils/api";
+import { loginApi, googleLoginApi } from "@/utils/api";
+import { useGoogleLogin } from "@react-oauth/google";
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginPage,
@@ -11,11 +12,12 @@ export const Route = createFileRoute("/auth/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const setUser = useSetAtom(userAtom); // ← Jotai setter
+  const setUser = useSetAtom(userAtom);
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const update = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -54,6 +56,31 @@ function LoginPage() {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async ({ access_token }) => {
+      setGoogleLoading(true);
+      setError("");
+      try {
+        const result = await googleLoginApi(access_token);
+        localStorage.setItem("token", result.token);
+        localStorage.setItem("eventura-user", JSON.stringify(result.user));
+        navigate({ to: "/events" });
+      } catch (err: any) {
+        try {
+          const body = await err.response?.json();
+          setError(body?.message || "Login dengan Google gagal");
+        } catch {
+          setError("Login dengan Google gagal");
+        }
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: () => {
+      setError("Google login dibatalkan atau gagal");
+    },
+  });
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4 py-12">
@@ -145,7 +172,7 @@ function LoginPage() {
 
             <button
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || googleLoading}
               className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -164,6 +191,43 @@ function LoginPage() {
             <span className="text-xs text-white/25">atau</span>
             <div className="h-px flex-1 bg-white/8" />
           </div>
+
+          <button
+            type="button"
+            onClick={() => handleGoogleLogin()}
+            disabled={loading || googleLoading}
+            className="mt-4 flex w-full items-center justify-center gap-3 rounded-xl border border-white/12 bg-white/4 px-6 py-3 text-sm font-semibold text-white/70 transition-all hover:bg-white/8 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {googleLoading ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 48 48"
+                  className="h-5 w-5"
+                >
+                  <path
+                    fill="#FFC107"
+                    d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C33.7 6.1 29.1 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"
+                  />
+                  <path
+                    fill="#FF3D00"
+                    d="M6.3 14.7l6.6 4.8C14.5 16.1 18.9 12 24 12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C33.7 6.1 29.1 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"
+                  />
+                  <path
+                    fill="#4CAF50"
+                    d="M24 44c5.1 0 9.8-2 13.4-5.3l-6.2-5.1C29.1 35.9 26.7 36 24 36c-5.2 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"
+                  />
+                  <path
+                    fill="#1976D2"
+                    d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.3 5.4-6.1 6.9l6.2 5.1C36.9 37.5 40 31.2 40 24c0-1.3-.1-2.7-.4-3.5z"
+                  />
+                </svg>
+                Continue with Google
+              </>
+            )}
+          </button>
 
           <p className="mt-6 text-center text-sm text-white/40">
             Belum punya akun?{" "}

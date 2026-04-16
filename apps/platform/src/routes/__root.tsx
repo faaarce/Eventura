@@ -4,7 +4,7 @@ import {
   Scripts,
   createRootRoute,
 } from "@tanstack/react-router";
-
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -21,7 +21,13 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <GoogleOAuthProvider
+      clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}
+    >
+      <Outlet />
+    </GoogleOAuthProvider>
+  );
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {

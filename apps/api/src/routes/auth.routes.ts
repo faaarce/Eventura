@@ -12,6 +12,7 @@ import { Router } from "express";
 import {
   register,
   login,
+  googleLogin,
   getProfile,
   updateProfile,
   changePassword,
@@ -23,7 +24,7 @@ import {
 } from "../controllers/auth.controller.js";
 import {
   authenticate,
-  authenticateResetToken, // ← TAMBAHIN IMPORT INI
+  authenticateResetToken, 
 } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/upload.middleware.js";
 
@@ -31,11 +32,12 @@ const router = Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/google", googleLogin);
 router.post("/refresh", refreshToken);
 router.post("/logout", logoutUser);
 router.post("/forgot-password", forgotPassword);
 
-// ← GANTI route reset-password, tambahin middleware:
+
 router.post("/reset-password", authenticateResetToken, resetPassword);
 
 router.get("/profile", authenticate, getProfile);

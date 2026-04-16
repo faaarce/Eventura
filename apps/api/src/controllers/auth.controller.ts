@@ -35,6 +35,10 @@ const resetPasswordSchema = z.object({
   newPassword: z.string().min(6, "Password minimal 6 karakter"),
 });
 
+const googleLoginSchema = z.object({
+  accessToken: z.string().min(1, "Google access token is required"),
+});
+
 export async function register(
   req: Request,
   res: Response,
@@ -82,6 +86,20 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       success: true,
       data: { user },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function googleLogin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const data = googleLoginSchema.parse(req.body);
+    const result = await authService.googleLogin(data.accessToken);
+    res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
@@ -171,6 +189,8 @@ export async function resetPassword(
     next(err);
   }
 }
+
+
 
 export async function getOrganizerPublicProfile(
   req: Request,

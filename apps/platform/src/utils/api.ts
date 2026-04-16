@@ -67,6 +67,33 @@ export async function loginApi(input: {
   return res.data.user;
 }
 
+export async function googleLoginApi(accessToken: string): Promise<{
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: "CUSTOMER" | "ORGANIZER";
+    referralCode: string;
+    profileImage: string | null;
+  };
+  token: string;
+}> {
+  const res = await api.post("auth/google", { json: { accessToken } }).json<
+    ApiResponse<{
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        role: "CUSTOMER" | "ORGANIZER";
+        referralCode: string;
+        profileImage: string | null;
+      };
+      token: string;
+    }>
+  >();
+  return res.data;
+}
+
 export async function registerApi(input: {
   name: string;
   email: string;
@@ -165,7 +192,6 @@ export async function fetchEventBySlug(slug: string): Promise<ApiEvent> {
     .json<ApiResponse<ApiEvent>>();
   return res.data;
 }
- 
 
 export async function verifyVoucher(
   eventId: string,

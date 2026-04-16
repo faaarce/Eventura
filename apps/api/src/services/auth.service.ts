@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { ApiError, generateReferralCode } from "../utils/helpers.js";
 import { sendWelcomeEmail, sendResetPasswordEmail } from "../utils/mail.js";
 import { uploadImage, deleteImage } from "../utils/cloudinary.js";
+import type { GoogleUserInfo } from "../types/google.js";
 
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -403,4 +404,65 @@ export async function logout(refreshToken?: string) {
   }
 
   return { message: "Logout success" };
+}
+
+export async function googleLogin(accessToken: string) {
+  const response = await fetch(
+    "https://www.googleapis.com/oauth2/v3/userinfo",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new ApiError(401, "Google token tidak valid");
+  }
+
+  const googleUser: GoogleUserInfo = await response.json();
+
+  let user = await prisma.user.findUnique({
+    where: { email: googleUser.email },
+  });
+
+  if (!user) {
+    let referralCode: string;
+    do {
+      referralCode = generateReferralCode();
+    } while (await prisma.user.findUnique({ where: { referralCode } }));
+
+    user = await prisma.user.create({
+      data: {
+        name: googleUser.name,
+        email: googleUser.email,
+        password: "",
+        profileImage: googleUser.picture,
+        role: "CUSTOMER",
+        provider: "GOOGLE",
+        referralCode,
+      },
+    });
+  }
+
+  if (user.provider !== "GOOGLE") {
+    throw new ApiError(
+      400,
+      "Email ini sudah terdaftar dengan email/password. Silakan login manual.",
+    );
+  }
+
+  const token = generateToken(user.id, user.email, user.role);
+
+  return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      referralCode: user.referralCode,
+      profileImage: user.profileImage,
+    },
+    token,
+  };
 }

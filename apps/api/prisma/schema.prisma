@@ -27,6 +27,11 @@ enum TransactionStatus {
   CANCELED
 }
 
+enum Provider {
+  CREDENTIALS
+  GOOGLE
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -55,6 +60,7 @@ model User {
   resetTokenExpiry DateTime?     @map("reset_token_expiry")
   refreshToken     RefreshToken?
   resetTokenUsed   Boolean       @default(false) @map("reset_token_used")
+  provider         Provider      @default(CREDENTIALS)
 
   @@map("users")
 }
@@ -64,7 +70,7 @@ model Event {
   name        String
   description String
   category    String
-  slug        String  @unique
+  slug        String   @unique
   location    String
   venue       String
   imageUrl    String?  @map("image_url")
