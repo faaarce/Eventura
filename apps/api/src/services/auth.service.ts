@@ -406,12 +406,12 @@ export async function logout(refreshToken?: string) {
   return { message: "Logout success" };
 }
 
-export async function googleLogin(accessToken: string) {
+export async function googleLogin(googleAccessToken: string) {
   const response = await fetch(
     "https://www.googleapis.com/oauth2/v3/userinfo",
     {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${googleAccessToken}`,
       },
     },
   );
@@ -452,7 +452,18 @@ export async function googleLogin(accessToken: string) {
     );
   }
 
-  const token = generateToken(user.id, user.email, user.role);
+  const accessToken = generateAccessToken(user.id, user.email, user.role);
+
+  const refreshToken = crypto.randomBytes(40).toString("hex");
+  const expiredAt = new Date(
+    Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  await prisma.refreshToken.upsert({
+    where: { userId: user.id },
+    update: { token: refreshToken, expiredAt },
+    create: { token: refreshToken, expiredAt, userId: user.id },
+  });
 
   return {
     user: {
@@ -463,6 +474,7 @@ export async function googleLogin(accessToken: string) {
       referralCode: user.referralCode,
       profileImage: user.profileImage,
     },
-    token,
+    accessToken,
+    refreshToken,
   };
 }

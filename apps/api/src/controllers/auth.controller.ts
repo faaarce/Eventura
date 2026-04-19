@@ -98,12 +98,27 @@ export async function googleLogin(
 ) {
   try {
     const data = googleLoginSchema.parse(req.body);
-    const result = await authService.googleLogin(data.accessToken);
-    res.json({ success: true, data: result });
+    const { user, accessToken, refreshToken } = await authService.googleLogin(
+      data.accessToken,
+    );
+
+    // SET COOKIES — sama persis kayak login biasa!
+    res.cookie("accessToken", accessToken, {
+      ...cookieOptions,
+      maxAge: 15 * 60 * 1000,
+    });
+    res.cookie("refreshToken", refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Response body cuma user (token gak perlu di body — udah di cookie)
+    res.json({ success: true, data: { user } });
   } catch (err) {
     next(err);
   }
 }
+
 
 export async function getProfile(
   req: Request,
@@ -189,8 +204,6 @@ export async function resetPassword(
     next(err);
   }
 }
-
-
 
 export async function getOrganizerPublicProfile(
   req: Request,

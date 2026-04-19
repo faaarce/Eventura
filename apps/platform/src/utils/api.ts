@@ -68,29 +68,11 @@ export async function loginApi(input: {
 }
 
 export async function googleLoginApi(accessToken: string): Promise<{
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: "CUSTOMER" | "ORGANIZER";
-    referralCode: string;
-    profileImage: string | null;
-  };
-  token: string;
+  user: AuthUser;
 }> {
-  const res = await api.post("auth/google", { json: { accessToken } }).json<
-    ApiResponse<{
-      user: {
-        id: string;
-        name: string;
-        email: string;
-        role: "CUSTOMER" | "ORGANIZER";
-        referralCode: string;
-        profileImage: string | null;
-      };
-      token: string;
-    }>
-  >();
+  const res = await api
+    .post("auth/google", { json: { accessToken } })
+    .json<ApiResponse<{ user: AuthUser }>>();
   return res.data;
 }
 

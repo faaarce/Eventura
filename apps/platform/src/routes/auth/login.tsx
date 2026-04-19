@@ -63,9 +63,16 @@ function LoginPage() {
       setError("");
       try {
         const result = await googleLoginApi(access_token);
-        localStorage.setItem("token", result.token);
-        localStorage.setItem("eventura-user", JSON.stringify(result.user));
-        navigate({ to: "/events" });
+
+        // Simpan user ke Jotai — SAMA kayak login biasa!
+        setUser(result.user);
+
+        // Redirect based on role
+        if (result.user.role === "ORGANIZER") {
+          navigate({ to: "/organizer/dashboard" });
+        } else {
+          navigate({ to: "/events" });
+        }
       } catch (err: any) {
         try {
           const body = await err.response?.json();
