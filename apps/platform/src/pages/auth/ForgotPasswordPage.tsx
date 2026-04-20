@@ -1,13 +1,16 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Sparkles, Mail, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom"
+import {
+  Sparkles,
+  Mail,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+} from "lucide-react";
 import { useState } from "react";
 import { forgotPassword } from "@/utils/api";
 
-export const Route = createFileRoute("/auth/forgot-password")({
-  component: ForgotPasswordPage,
-});
 
-function ForgotPasswordPage() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,14 +42,14 @@ function ForgotPasswordPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#0a0a0a] px-4 py-12">
-      {/* Background effects */}
+
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-[#328f97]/8 blur-[120px]" />
         <div className="absolute -bottom-32 -left-32 h-[400px] w-[400px] rounded-full bg-[#d4537e]/5 blur-[100px]" />
       </div>
 
       <div className="rise-in relative w-full max-w-md">
-        {/* Logo */}
+
         <Link
           to="/"
           className="mb-8 flex items-center justify-center gap-2.5 no-underline"
@@ -62,10 +65,10 @@ function ForgotPasswordPage() {
           </span>
         </Link>
 
-        {/* Card */}
+
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm sm:p-8">
           {sent ? (
-            /* Success state */
+
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10">
                 <CheckCircle2 size={32} className="text-emerald-400" />
@@ -78,9 +81,7 @@ function ForgotPasswordPage() {
                 terdaftar di Eventura, kamu akan menerima link untuk reset
                 password. Cek inbox dan folder spam.
               </p>
-              <p className="mt-4 text-xs text-white/30">
-                Link berlaku 1 jam.
-              </p>
+              <p className="mt-4 text-xs text-white/30">Link berlaku 1 jam.</p>
               <Link
                 to="/auth/login"
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/4 px-6 py-3.5 text-sm font-bold text-white/70 no-underline transition-all hover:bg-white/8 hover:text-white"
@@ -90,13 +91,14 @@ function ForgotPasswordPage() {
               </Link>
             </div>
           ) : (
-            /* Form state */
+
             <>
               <h1 className="text-center text-2xl font-bold text-white">
                 Lupa Password
               </h1>
               <p className="mt-2 text-center text-sm text-white/40">
-                Masukkan email kamu dan kami akan kirim link untuk reset password
+                Masukkan email kamu dan kami akan kirim link untuk reset
+                password
               </p>
 
               {error && (
@@ -106,7 +108,7 @@ function ForgotPasswordPage() {
               )}
 
               <div className="mt-6 space-y-4">
-                {/* Email */}
+
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
                     Email
@@ -129,7 +131,6 @@ function ForgotPasswordPage() {
                   </div>
                 </div>
 
-                {/* Submit */}
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
@@ -146,7 +147,6 @@ function ForgotPasswordPage() {
                 </button>
               </div>
 
-              {/* Back to login */}
               <p className="mt-6 text-center text-sm text-white/40">
                 Ingat password kamu?{" "}
                 <Link

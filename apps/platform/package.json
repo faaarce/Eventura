@@ -6,50 +6,35 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "pnpm with-env vite dev --port 3000",
-    "build": "vite build",
+    "dev": "pnpm with-env vite --port 3000",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
     "with-env": "dotenv -e ../../.env --"
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.1.18",
-    "@tanstack/react-devtools": "latest",
-    "@tanstack/react-router": "latest",
-    "@tanstack/react-router-devtools": "latest",
-    "@tanstack/react-router-ssr-query": "latest",
-    "@tanstack/react-start": "latest",
-    "@tanstack/router-plugin": "^1.132.0",
+    "@tanstack/react-query": "^5.62.0",
     "jotai": "^2.19.1",
-    "js-cookie": "^3.0.5",
     "ky": "^1.14.3",
     "lucide-react": "^0.545.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-router-dom": "^7.0.0",
     "recharts": "^3.8.1",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
-    "@tanstack/devtools-vite": "latest",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/react": "^16.3.0",
-    "@types/js-cookie": "^3.0.6",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.4",
-    "jsdom": "^28.1.0",
     "typescript": "^5.7.2",
     "vite": "^7.3.1",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.0.5"
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
+    "onlyBuiltDependencies": ["esbuild", "lightningcss"]
   }
 }

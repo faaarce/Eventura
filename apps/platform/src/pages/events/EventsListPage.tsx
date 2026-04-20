@@ -1,63 +1,41 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { BrowseLayout } from "@/components/events/BrowseLayout";
 import { BrowseHeader } from "@/components/events/BrowseHeader";
 import { BrowseFilters } from "@/components/events/BrowseFilters";
 import { BrowseCategories } from "@/components/events/BrowseCategories";
 import { BrowsePromo } from "@/components/events/BrowsePromo";
 import { BrowseEventCard } from "@/components/events/BrowseEventCard";
-import { fetchEvents, type ApiEvent } from "@/utils/api";
+import { fetchEvents } from "@/utils/api";
+import { queryKeys } from "@/utils/queryKeys";
 import type { EventCategory } from "@/types/event";
 
-export const Route = createFileRoute("/events/")({
-  component: EventsPage,
-});
-
-function EventsPage() {
+export default function EventsListPage() {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activePrice, setActivePrice] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<EventCategory | null>(null);
 
-  const [events, setEvents] = useState<ApiEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  // Debounce search 300ms
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-    const timer = setTimeout(() => {
-      fetchEvents({
-        search: search.trim() || undefined,
-        category: activeCategory || undefined,
-        isFree:
-          activePrice === "Free"
-            ? true
-            : activePrice === "Paid"
-            ? false
-            : undefined,
-        limit: 20,
-      })
-        .then((data) => {
-          if (!cancelled) {
-            setEvents(data.events);
-            setError(null);
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          if (!cancelled) setError("Gagal memuat events. Cek koneksi ke server.");
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    }, 300); // debounce 300ms
+  const filters = {
+    search: debouncedSearch || undefined,
+    category: activeCategory || undefined,
+    isFree:
+      activePrice === "Free" ? true : activePrice === "Paid" ? false : undefined,
+    limit: 20,
+  };
 
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [search, activeCategory, activePrice]);
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.events.list(filters),
+    queryFn: () => fetchEvents(filters),
+  });
+
+  const events = data?.events ?? [];
 
   return (
     <BrowseLayout>
@@ -90,18 +68,15 @@ function EventsPage() {
             Popular Events
           </h2>
 
-          {loading ? (
+          {isLoading ? (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="aspect-square animate-pulse rounded-xl border border-white/8 bg-white/4"
-                />
+                <div key={i} className="aspect-square animate-pulse rounded-xl border border-white/8 bg-white/4" />
               ))}
             </div>
           ) : error ? (
             <div className="mt-10 rounded-2xl border border-red-500/20 bg-red-500/5 py-14 text-center">
-              <p className="text-lg font-semibold text-red-400">{error}</p>
+              <p className="text-lg font-semibold text-red-400">Gagal memuat events</p>
               <p className="mt-2 text-sm text-white/40">
                 Pastikan backend jalan di http://localhost:8000
               </p>
@@ -117,9 +92,7 @@ function EventsPage() {
           ) : (
             <div className="mt-10 rounded-2xl border border-white/8 bg-white/4 py-14 text-center sm:mt-12 sm:py-16">
               <p className="text-lg font-semibold text-white">No events found</p>
-              <p className="mt-2 text-sm text-white/40">
-                Try adjusting your filters or search query.
-              </p>
+              <p className="mt-2 text-sm text-white/40">Try adjusting your filters or search query.</p>
             </div>
           )}
         </section>

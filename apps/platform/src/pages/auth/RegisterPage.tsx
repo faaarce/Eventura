@@ -1,26 +1,13 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "react-router-dom";
 import { useSetAtom } from "jotai";
-import {
-  Sparkles,
-  User,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Gift,
-  ArrowRight,
-} from "lucide-react";
+import { Sparkles, User, Mail, Lock, Eye, EyeOff, Gift, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { userAtom } from "@/stores/auth";
 import { registerApi } from "@/utils/api";
 
-export const Route = createFileRoute("/auth/register")({
-  component: RegisterPage,
-});
-
-function RegisterPage() {
+export default function RegisterPage() {
   const navigate = useNavigate();
-  const setUser = useSetAtom(userAtom); // ← Jotai setter
+  const setUser = useSetAtom(userAtom);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -57,16 +44,9 @@ function RegisterPage() {
         role: form.role,
         ...(form.referralCode && { referralCode: form.referralCode }),
       });
-
-      // Simpan user ke Jotai (auto-persist)
       setUser(user);
-
-      // Redirect based on role
-      if (user.role === "ORGANIZER") {
-        navigate({ to: "/organizer/dashboard" });
-      } else {
-        navigate({ to: "/events" });
-      }
+      if (user.role === "ORGANIZER") navigate("/organizer/dashboard");
+      else navigate("/events");
     } catch (err: any) {
       try {
         const body = await err.response?.json();
@@ -87,40 +67,28 @@ function RegisterPage() {
       </div>
 
       <div className="rise-in relative w-full max-w-md">
-        <Link
-          to="/"
-          className="mb-8 flex items-center justify-center gap-2.5 no-underline"
-        >
+        <Link to="/" className="mb-8 flex items-center justify-center gap-2.5 no-underline">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white">
             <Sparkles size={18} className="text-[#0a0a0a]" strokeWidth={2.5} />
           </span>
-          <span
-            className="text-xl font-bold text-white"
-            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
-          >
+          <span className="text-xl font-bold text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
             Eventura
           </span>
         </Link>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm sm:p-8">
-          <h1 className="text-center text-2xl font-bold text-white">
-            Buat Akun Baru
-          </h1>
-          <p className="mt-2 text-center text-sm text-white/40">
-            Bergabung dan temukan event terbaik
-          </p>
+          <h1 className="text-center text-2xl font-bold text-white">Buat Akun Baru</h1>
+          <p className="mt-2 text-center text-sm text-white/40">Bergabung dan temukan event terbaik</p>
 
           {error && (
-            <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+            <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
               {error}
             </div>
           )}
 
           <div className="mt-6 space-y-4">
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                Daftar sebagai
-              </label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">Daftar sebagai</label>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -148,55 +116,45 @@ function RegisterPage() {
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                Nama lengkap
-              </label>
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30 transition-colors">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">Nama lengkap</label>
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 transition-colors focus-within:border-white/30">
                 <User size={16} className="shrink-0 text-white/30" />
                 <input
                   type="text"
                   placeholder="Masukkan nama kamu"
                   value={form.name}
                   onChange={(e) => update("name", e.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25 font-[inherit]"
+                  className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                Email
-              </label>
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30 transition-colors">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">Email</label>
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 transition-colors focus-within:border-white/30">
                 <Mail size={16} className="shrink-0 text-white/30" />
                 <input
                   type="email"
                   placeholder="nama@email.com"
                   value={form.email}
                   onChange={(e) => update("email", e.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25 font-[inherit]"
+                  className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                Password
-              </label>
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30 transition-colors">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">Password</label>
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 transition-colors focus-within:border-white/30">
                 <Lock size={16} className="shrink-0 text-white/30" />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Minimal 6 karakter"
                   value={form.password}
                   onChange={(e) => update("password", e.target.value)}
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25 font-[inherit]"
+                  className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="shrink-0 text-white/30 hover:text-white/60 transition-colors"
-                >
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="shrink-0 text-white/30 transition-colors hover:text-white/60">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -204,19 +162,16 @@ function RegisterPage() {
 
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
-                Kode Referral{" "}
-                <span className="text-white/25 normal-case">(opsional)</span>
+                Kode Referral <span className="normal-case text-white/25">(opsional)</span>
               </label>
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 focus-within:border-white/30 transition-colors">
+              <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 transition-colors focus-within:border-white/30">
                 <Gift size={16} className="shrink-0 text-white/30" />
                 <input
                   type="text"
                   placeholder="Contoh: 7UTLKNFU"
                   value={form.referralCode}
-                  onChange={(e) =>
-                    update("referralCode", e.target.value.toUpperCase())
-                  }
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25 font-[inherit]"
+                  onChange={(e) => update("referralCode", e.target.value.toUpperCase())}
+                  className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
                 />
               </div>
             </div>
@@ -224,31 +179,19 @@ function RegisterPage() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-[#0a0a0a] transition-all hover:bg-white/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0a0a0a]/20 border-t-[#0a0a0a]" />
               ) : (
-                <>
-                  Daftar Sekarang
-                  <ArrowRight size={16} />
-                </>
+                <>Daftar Sekarang <ArrowRight size={16} /></>
               )}
             </button>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-white/8" />
-            <span className="text-xs text-white/25">atau</span>
-            <div className="h-px flex-1 bg-white/8" />
-          </div>
-
           <p className="mt-6 text-center text-sm text-white/40">
             Sudah punya akun?{" "}
-            <Link
-              to="/auth/login"
-              className="font-semibold text-white no-underline hover:text-white/80"
-            >
+            <Link to="/auth/login" className="font-semibold text-white no-underline hover:text-white/80">
               Masuk di sini
             </Link>
           </p>
