@@ -1,6 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, CalendarDays, Receipt, Sparkles, LogOut, ArrowLeft,
+  LayoutDashboard,
+  CalendarDays,
+  Receipt,
+  Sparkles,
+  LogOut,
+  ArrowLeft,
 } from "lucide-react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { userAtom } from "@/stores/auth";
@@ -10,10 +16,12 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const user = useAtomValue(userAtom);
   const setUser = useSetAtom(userAtom);
+  const queryClient = useQueryClient();
 
   const handleLogout = async () => {
     if (!confirm("Yakin mau logout?")) return;
     await logout();
+    queryClient.clear();
     setUser(null);
     navigate("/auth/login");
   };
@@ -25,9 +33,15 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-3">
             <Link to="/events" className="flex items-center gap-2 no-underline">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white">
-                <Sparkles size={17} className="text-[#0a0a0a]" strokeWidth={2.5} />
+                <Sparkles
+                  size={17}
+                  className="text-[#0a0a0a]"
+                  strokeWidth={2.5}
+                />
               </span>
-              <span className="display-title text-lg font-bold text-white">Eventura</span>
+              <span className="display-title text-lg font-bold text-white">
+                Eventura
+              </span>
             </Link>
             <span className="hidden rounded-full bg-white/8 px-2.5 py-0.5 text-xs font-semibold text-white/60 sm:inline">
               Organizer
@@ -35,7 +49,10 @@ export default function DashboardLayout() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link to="/events" className="hidden items-center gap-2 text-xs font-semibold text-white/50 no-underline transition-colors hover:text-white sm:flex">
+            <Link
+              to="/events"
+              className="hidden items-center gap-2 text-xs font-semibold text-white/50 no-underline transition-colors hover:text-white sm:flex"
+            >
               <ArrowLeft size={14} />
               Ke site
             </Link>
@@ -43,7 +60,9 @@ export default function DashboardLayout() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-sm font-bold text-white">
                 {user?.email.charAt(0).toUpperCase() || "?"}
               </div>
-              <span className="text-sm font-semibold text-white/70">{user?.email || "Organizer"}</span>
+              <span className="text-sm font-semibold text-white/70">
+                {user?.email || "Organizer"}
+              </span>
             </div>
             <button
               onClick={handleLogout}
@@ -57,21 +76,45 @@ export default function DashboardLayout() {
       </header>
 
       <div className="flex">
-  
         <aside className="sticky top-[57px] hidden h-[calc(100vh-57px)] w-60 shrink-0 border-r border-white/8 bg-white/[0.02] p-4 md:block">
           <nav className="flex flex-col gap-1">
-            <SidebarLink to="/organizer/dashboard" icon={LayoutDashboard} label="Statistik" end />
-            <SidebarLink to="/organizer/dashboard/events" icon={CalendarDays} label="Events" />
-            <SidebarLink to="/organizer/dashboard/transactions" icon={Receipt} label="Transaksi" />
+            <SidebarLink
+              to="/organizer/dashboard"
+              icon={LayoutDashboard}
+              label="Statistik"
+              end
+            />
+            <SidebarLink
+              to="/organizer/dashboard/events"
+              icon={CalendarDays}
+              label="Events"
+            />
+            <SidebarLink
+              to="/organizer/dashboard/transactions"
+              icon={Receipt}
+              label="Transaksi"
+            />
           </nav>
         </aside>
 
-    
         <div className="sticky top-[57px] z-30 w-full border-b border-white/8 bg-[#0a0a0a]/95 backdrop-blur-xl md:hidden">
           <nav className="-mx-px flex overflow-x-auto">
-            <MobileTab to="/organizer/dashboard" icon={LayoutDashboard} label="Stats" end />
-            <MobileTab to="/organizer/dashboard/events" icon={CalendarDays} label="Events" />
-            <MobileTab to="/organizer/dashboard/transactions" icon={Receipt} label="Transaksi" />
+            <MobileTab
+              to="/organizer/dashboard"
+              icon={LayoutDashboard}
+              label="Stats"
+              end
+            />
+            <MobileTab
+              to="/organizer/dashboard/events"
+              icon={CalendarDays}
+              label="Events"
+            />
+            <MobileTab
+              to="/organizer/dashboard/transactions"
+              icon={Receipt}
+              label="Transaksi"
+            />
           </nav>
         </div>
 
@@ -84,8 +127,16 @@ export default function DashboardLayout() {
 }
 
 function SidebarLink({
-  to, icon: Icon, label, end = false,
-}: { to: string; icon: typeof LayoutDashboard; label: string; end?: boolean }) {
+  to,
+  icon: Icon,
+  label,
+  end = false,
+}: {
+  to: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  end?: boolean;
+}) {
   return (
     <NavLink
       to={to}
@@ -105,15 +156,25 @@ function SidebarLink({
 }
 
 function MobileTab({
-  to, icon: Icon, label, end = false,
-}: { to: string; icon: typeof LayoutDashboard; label: string; end?: boolean }) {
+  to,
+  icon: Icon,
+  label,
+  end = false,
+}: {
+  to: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  end?: boolean;
+}) {
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
         `flex shrink-0 items-center justify-center gap-2 border-b-2 px-5 py-3 text-sm font-semibold no-underline transition-all ${
-          isActive ? "border-white text-white" : "border-transparent text-white/50"
+          isActive
+            ? "border-white text-white"
+            : "border-transparent text-white/50"
         }`
       }
     >

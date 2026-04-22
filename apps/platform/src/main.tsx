@@ -16,6 +16,13 @@ const queryClient = new QueryClient({
   },
 })
 
+if (typeof window !== "undefined") {
+  window.addEventListener("eventura:force-logout", () => {
+    queryClient.clear()
+  })
+}
+ 
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

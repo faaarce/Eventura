@@ -5,10 +5,12 @@ import { useState } from "react";
 import { userAtom } from "@/stores/auth";
 import { loginApi, googleLoginApi } from "@/utils/api";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const setUser = useSetAtom(userAtom);
+  const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await loginApi(form);
+      queryClient.clear();
       setUser(user);
       if (user.role === "ORGANIZER") navigate("/organizer/dashboard");
       else navigate("/events");
@@ -50,6 +53,7 @@ export default function LoginPage() {
       setError("");
       try {
         const result = await googleLoginApi(access_token);
+        queryClient.clear();
         setUser(result.user);
         if (result.user.role === "ORGANIZER") navigate("/organizer/dashboard");
         else navigate("/events");
@@ -75,18 +79,28 @@ export default function LoginPage() {
       </div>
 
       <div className="rise-in relative w-full max-w-md">
-        <Link to="/" className="mb-8 flex items-center justify-center gap-2.5 no-underline">
+        <Link
+          to="/"
+          className="mb-8 flex items-center justify-center gap-2.5 no-underline"
+        >
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white">
             <Sparkles size={18} className="text-[#0a0a0a]" strokeWidth={2.5} />
           </span>
-          <span className="text-xl font-bold text-white" style={{ fontFamily: "'Fraunces', Georgia, serif" }}>
+          <span
+            className="text-xl font-bold text-white"
+            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+          >
             Eventura
           </span>
         </Link>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm sm:p-8">
-          <h1 className="text-center text-2xl font-bold text-white">Selamat Datang</h1>
-          <p className="mt-2 text-center text-sm text-white/40">Masuk ke akun Eventura kamu</p>
+          <h1 className="text-center text-2xl font-bold text-white">
+            Selamat Datang
+          </h1>
+          <p className="mt-2 text-center text-sm text-white/40">
+            Masuk ke akun Eventura kamu
+          </p>
 
           {error && (
             <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
@@ -96,7 +110,9 @@ export default function LoginPage() {
 
           <div className="mt-6 space-y-4">
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">Email</label>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-white/50">
+                Email
+              </label>
               <div className="flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2.5 transition-colors focus-within:border-white/30">
                 <Mail size={16} className="shrink-0 text-white/30" />
                 <input
@@ -111,8 +127,13 @@ export default function LoginPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wider text-white/50">Password</label>
-                <Link to="/auth/forgot-password" className="text-xs font-semibold text-white/30 no-underline transition-colors hover:text-white/50">
+                <label className="text-xs font-semibold uppercase tracking-wider text-white/50">
+                  Password
+                </label>
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-xs font-semibold text-white/30 no-underline transition-colors hover:text-white/50"
+                >
                   Lupa password?
                 </Link>
               </div>
@@ -123,10 +144,16 @@ export default function LoginPage() {
                   placeholder="Masukkan password"
                   value={form.password}
                   onChange={(e) => update("password", e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(e); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSubmit(e);
+                  }}
                   className="w-full bg-transparent font-[inherit] text-sm text-white outline-none placeholder:text-white/25"
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="shrink-0 text-white/30 transition-colors hover:text-white/60">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="shrink-0 text-white/30 transition-colors hover:text-white/60"
+                >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -140,7 +167,9 @@ export default function LoginPage() {
               {loading ? (
                 <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0a0a0a]/20 border-t-[#0a0a0a]" />
               ) : (
-                <>Masuk <ArrowRight size={16} /></>
+                <>
+                  Masuk <ArrowRight size={16} />
+                </>
               )}
             </button>
           </div>
@@ -161,11 +190,27 @@ export default function LoginPage() {
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
             ) : (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
-                  <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C33.7 6.1 29.1 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z" />
-                  <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16.1 18.9 12 24 12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C33.7 6.1 29.1 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z" />
-                  <path fill="#4CAF50" d="M24 44c5.1 0 9.8-2 13.4-5.3l-6.2-5.1C29.1 35.9 26.7 36 24 36c-5.2 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
-                  <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.3 5.4-6.1 6.9l6.2 5.1C36.9 37.5 40 31.2 40 24c0-1.3-.1-2.7-.4-3.5z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 48 48"
+                  className="h-5 w-5"
+                >
+                  <path
+                    fill="#FFC107"
+                    d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C33.7 6.1 29.1 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"
+                  />
+                  <path
+                    fill="#FF3D00"
+                    d="M6.3 14.7l6.6 4.8C14.5 16.1 18.9 12 24 12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C33.7 6.1 29.1 4 24 4c-7.7 0-14.3 4.3-17.7 10.7z"
+                  />
+                  <path
+                    fill="#4CAF50"
+                    d="M24 44c5.1 0 9.8-2 13.4-5.3l-6.2-5.1C29.1 35.9 26.7 36 24 36c-5.2 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"
+                  />
+                  <path
+                    fill="#1976D2"
+                    d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.3 5.4-6.1 6.9l6.2 5.1C36.9 37.5 40 31.2 40 24c0-1.3-.1-2.7-.4-3.5z"
+                  />
                 </svg>
                 Continue with Google
               </>
@@ -174,13 +219,18 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-white/40">
             Belum punya akun?{" "}
-            <Link to="/auth/register" className="font-semibold text-white no-underline hover:text-white/80">
+            <Link
+              to="/auth/register"
+              className="font-semibold text-white no-underline hover:text-white/80"
+            >
               Daftar gratis
             </Link>
           </p>
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/20">© 2026 Eventura. All rights reserved.</p>
+        <p className="mt-6 text-center text-xs text-white/20">
+          © 2026 Eventura. All rights reserved.
+        </p>
       </div>
     </div>
   );

@@ -4,33 +4,28 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const api = ky.create({
   prefixUrl: API_URL,
-  credentials: "include", // ← PENTING: cookie auto-kirim (accessToken + refreshToken)
+  credentials: "include",
   hooks: {
     afterResponse: [
-      // Auto-refresh: kalau dapat 401, coba refresh token
       async (request, _options, response) => {
         if (response.status !== 401) return response;
 
-        // Jangan infinite loop — skip endpoint auth yang relevan
         if (request.url.includes("/auth/refresh")) return response;
         if (request.url.includes("/auth/login")) return response;
         if (request.url.includes("/auth/register")) return response;
 
         try {
-          // Call refresh — browser auto kirim refreshToken cookie
-          // Backend set accessToken cookie baru
           const refreshRes = await ky
             .post(`${API_URL}/auth/refresh`, { credentials: "include" })
             .json<{ success: boolean }>();
 
           if (refreshRes.success) {
-            // Retry request original — accessToken cookie udah keset baru
             return ky(request);
           }
         } catch {
-          // Refresh gagal — force logout
           if (typeof window !== "undefined") {
             localStorage.removeItem("eventura-user");
+             window.dispatchEvent(new Event("eventura:force-logout"));
             window.location.href = "/auth/login";
           }
         }
@@ -92,13 +87,8 @@ export async function registerApi(input: {
 export async function logoutApi(): Promise<void> {
   try {
     await api.post("auth/logout").json();
-  } catch {
-    // Ignore — logout best-effort
-  }
+  } catch {}
 }
-
-// ============ EVENTS ============
-
 export interface ApiTicketType {
   id: string;
   name: string;
@@ -190,8 +180,6 @@ export async function verifyVoucher(
   return res.data;
 }
 
-// ============ TRANSACTIONS ============
-
 export type TransactionStatus =
   | "WAITING_FOR_PAYMENT"
   | "WAITING_FOR_CONFIRMATION"
@@ -233,6 +221,7 @@ interface CreateTransactionInput {
   eventId: string;
   items: { ticketTypeId: string; quantity: number }[];
   voucherCode?: string;
+  couponId?: string;
   usePoints?: boolean;
 }
 
@@ -392,16 +381,14 @@ export async function resetPassword(
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
   const res = await ky
     .post(`${API_URL}/auth/reset-password`, {
-      json: { newPassword }, // ← body CUMA newPassword, token gak masuk body
+      json: { newPassword },
       headers: {
-        Authorization: `Bearer ${token}`, // ← token di header
+        Authorization: `Bearer ${token}`,
       },
     })
     .json<ApiResponse<{ message: string }>>();
   return res.data;
 }
-
-// ============ REVIEWS ============
 
 export interface ApiReview {
   id: string;
@@ -453,8 +440,6 @@ export async function createReview(
   return res.data;
 }
 
-// ============ DASHBOARD ============
-
 export interface ApiDashboardStats {
   totalRevenue: number;
   totalTransactions: number;
@@ -485,8 +470,6 @@ export async function fetchDashboardStats(
     .json<ApiResponse<ApiDashboardStats>>();
   return res.data;
 }
-
-// ============ ORGANIZER EVENTS ============
 
 export interface ApiOrganizerEvent {
   id: string;
@@ -605,8 +588,6 @@ export async function updateEvent(
   return res.data;
 }
 
-// ============ ORGANIZER TRANSACTIONS ============
-
 export interface ApiOrganizerTransaction {
   id: string;
   invoiceNumber: string;
@@ -676,8 +657,6 @@ export async function rejectTransaction(
   return res.data;
 }
 
-// ============ VOUCHERS ============
-
 export interface ApiVoucher {
   id: string;
   code: string;
@@ -716,8 +695,6 @@ export async function createVoucher(
     .json<ApiResponse<ApiVoucher>>();
   return res.data;
 }
-
-// ============ ATTENDEES ============
 
 export interface ApiAttendee {
   name: string;

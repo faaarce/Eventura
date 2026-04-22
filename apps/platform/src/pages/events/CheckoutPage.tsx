@@ -2,13 +2,15 @@ import { useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, X, Minus, Plus, Ticket, Tag, ChevronRight, CalendarDays, MapPin, Shield, Sparkles,
+  ArrowLeft, X, Minus, Plus, Ticket, Tag, ChevronRight, CalendarDays, MapPin,
+  Shield, Sparkles, Gift, AlertTriangle,
 } from "lucide-react";
 import {
   fetchEventBySlug, verifyVoucher, createTransaction, fetchProfile,
 } from "@/utils/api";
 import { isAuthenticated } from "@/utils/auth";
 import { queryKeys } from "@/utils/queryKeys";
+import { CouponSelector } from "@/components/checkout/CouponSelector";
 
 const categoryGradients: Record<string, string> = {
   conference: "from-[#328f97] to-[#1a5c62]",
@@ -44,12 +46,14 @@ export default function CheckoutPage() {
   });
 
   const totalPoints = profile?.totalPoints ?? 0;
+  const coupons = profile?.coupons ?? [];
 
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [voucherCode, setVoucherCode] = useState("");
   const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [voucherError, setVoucherError] = useState("");
   const [voucherLoading, setVoucherLoading] = useState(false);
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
   const [usePoints, setUsePoints] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
@@ -77,9 +81,28 @@ export default function CheckoutPage() {
 
   const gradient = categoryGradients[event.category.toLowerCase()] ?? "from-[#328f97] to-[#1a5c62]";
   const hasItems = Object.values(quantities).some((q) => q > 0);
+
+  // Cari coupon yg dipilih
+  const selectedCoupon = coupons.find((c) => c.id === selectedCouponId) ?? null;
+
+  // ============================================================
+  // HITUNG TOTAL — match urutan di backend (transaction.service.ts):
+  // finalPrice = max(0, totalPrice - voucher - coupon - points)
+  // ============================================================
   const afterVoucher = Math.max(0, subtotal - voucherDiscount);
-  const pointsApplied = usePoints ? Math.min(totalPoints, afterVoucher) : 0;
-  const total = Math.max(0, afterVoucher - pointsApplied);
+
+  // Coupon discount, di-cap sama sisa setelah voucher
+  const couponDiscountRaw = selectedCoupon?.discountAmount ?? 0;
+  const couponApplied = Math.min(couponDiscountRaw, afterVoucher);
+  const afterCoupon = Math.max(0, afterVoucher - couponDiscountRaw);
+
+  // Points, di-cap sama sisa setelah coupon
+  const pointsApplied = usePoints ? Math.min(totalPoints, afterCoupon) : 0;
+  const total = Math.max(0, afterCoupon - pointsApplied);
+
+  // Warning: coupon "kebuang" karena discount > afterVoucher
+  const couponWasted =
+    selectedCoupon !== null && couponDiscountRaw > afterVoucher && afterVoucher < couponDiscountRaw;
 
   const handleApplyVoucher = async () => {
     if (!voucherCode.trim()) return;
@@ -118,6 +141,7 @@ export default function CheckoutPage() {
         eventId: event.id,
         items,
         voucherCode: voucherDiscount > 0 ? voucherCode : undefined,
+        couponId: selectedCouponId || undefined,
         usePoints,
       });
       navigate(`/transactions/${transaction.id}`);
@@ -241,8 +265,36 @@ export default function CheckoutPage() {
           {voucherError && <p className="mt-2 text-xs font-semibold text-red-400">{voucherError}</p>}
         </section>
 
+        {/* ================== COUPON SELECTOR ================== */}
+        {hasItems && subtotal > 0 && coupons.length > 0 && (
+          <section className="rise-in mt-6 sm:mt-8" style={{ animationDelay: "140ms" }}>
+            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white/70">
+              <Gift size={14} />
+              Kupon Kamu
+            </h2>
+            <div className="mt-3">
+              <CouponSelector
+                coupons={coupons}
+                selectedCouponId={selectedCouponId}
+                onSelect={setSelectedCouponId}
+                remainingAmount={afterVoucher}
+              />
+            </div>
+
+            {couponWasted && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-3 py-2.5">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0 text-yellow-400" />
+                <p className="text-xs text-yellow-400/90">
+                  Kupon ini bernilai {formatPrice(couponDiscountRaw)}, tapi sisa bayar cuma{" "}
+                  {formatPrice(afterVoucher)}. Kelebihannya gak akan direfund — yakin mau dipake sekarang?
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+
         {totalPoints > 0 && hasItems && (
-          <section className="rise-in mt-6 sm:mt-8" style={{ animationDelay: "150ms" }}>
+          <section className="rise-in mt-6 sm:mt-8" style={{ animationDelay: "160ms" }}>
             <h2 className="text-sm font-bold uppercase tracking-wider text-white/70">Points Balance</h2>
             <label className="mt-3 flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-white/12 bg-gradient-to-br from-[#2f6a4a]/15 to-transparent p-4">
               <div className="flex items-center gap-3">
@@ -252,7 +304,9 @@ export default function CheckoutPage() {
                 <div>
                   <p className="text-sm font-bold text-white">Gunakan {formatPrice(totalPoints)} points</p>
                   <p className="mt-0.5 text-xs text-white/50">
-                    {usePoints && pointsApplied > 0 ? `Potongan ${formatPrice(pointsApplied)} akan diterapkan` : "Kurangi total pembayaran dengan points kamu"}
+                    {usePoints && pointsApplied > 0
+                      ? `Potongan ${formatPrice(pointsApplied)} akan diterapkan`
+                      : "Kurangi total pembayaran dengan points kamu"}
                   </p>
                 </div>
               </div>
@@ -279,6 +333,12 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-emerald-400">
                   <span>Diskon voucher</span>
                   <span>-{formatPrice(voucherDiscount)}</span>
+                </div>
+              )}
+              {couponApplied > 0 && selectedCoupon && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Kupon ({selectedCoupon.code})</span>
+                  <span>-{formatPrice(couponApplied)}</span>
                 </div>
               )}
               {pointsApplied > 0 && (

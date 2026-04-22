@@ -18,9 +18,24 @@ function formatDate(s: string): string {
   return new Date(s).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
-function useCountdown(deadline: string) {
-  const [remaining, setRemaining] = useState(() => Math.max(0, new Date(deadline).getTime() - Date.now()));
+/**
+ * Countdown hook — null-safe. Kalo deadline undefined, balikin 0 semua.
+ * PENTING: hook ini selalu dipanggil di urutan yang sama, regardless of deadline.
+ */
+function useCountdown(deadline: string | undefined) {
+  const [remaining, setRemaining] = useState(() => {
+    if (!deadline) return 0;
+    return Math.max(0, new Date(deadline).getTime() - Date.now());
+  });
+
   useEffect(() => {
+    if (!deadline) {
+      setRemaining(0);
+      return;
+    }
+    // Set ulang pas deadline berubah
+    setRemaining(Math.max(0, new Date(deadline).getTime() - Date.now()));
+
     const interval = setInterval(() => {
       setRemaining(Math.max(0, new Date(deadline).getTime() - Date.now()));
     }, 1000);
@@ -88,6 +103,11 @@ export default function TransactionDetailPage() {
     },
   });
 
+  // ✅ PINDAH KE ATAS — sebelum early return!
+  // Hook ini SELALU dipanggil, even kalo trx masih undefined.
+  const countdown = useCountdown(trx?.paymentDeadline);
+
+  // ⬇️ Early return BOLEH di sini karena semua hook udah dipanggil di atas
   if (isLoading || !trx) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0a0a0a] text-white">
@@ -96,7 +116,6 @@ export default function TransactionDetailPage() {
     );
   }
 
-  const countdown = useCountdown(trx.paymentDeadline);
   const status = statusConfig[trx.status];
 
   const handleUpload = () => {
