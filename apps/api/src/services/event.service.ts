@@ -1,11 +1,7 @@
-// ============================================================
-// REPLACE apps/api/src/services/event.service.ts FULL
-// ============================================================
-
 import { prisma } from "../utils/prisma.js";
 import { ApiError } from "../utils/helpers.js";
 import { uploadImage, deleteImage } from "../utils/cloudinary.js";
-import { generateSlug } from "../utils/generate-slug.js"; // ← TAMBAH IMPORT
+import { generateSlug } from "../utils/generate-slug.js"; 
 
 interface CreateEventInput {
   name: string;
@@ -32,11 +28,7 @@ interface EventQuery {
   organizerId?: string;
 }
 
-/**
- * Helper: generate unique slug.
- * Kalau slug udah dipake, tambahin counter (-1, -2, ...).
- * excludeEventId: kalau lagi update, exclude event itu sendiri dari check.
- */
+
 async function generateUniqueSlug(
   name: string,
   excludeEventId?: string,
@@ -53,7 +45,7 @@ async function generateUniqueSlug(
       },
     });
 
-    if (!existing) break; // slug available!
+    if (!existing) break; 
 
     slug = `${baseSlug}-${counter}`;
     counter++;
@@ -78,10 +70,9 @@ export async function create(
     throw new ApiError(400, "Free events cannot have paid ticket types");
   }
 
-  // Generate unique slug
+  
   const slug = await generateUniqueSlug(input.name);
 
-  // Upload image kalau ada file
   let imageUrl = input.imageUrl;
   if (file) {
     const { secure_url } = await uploadImage(file, "eventura/events");
@@ -91,7 +82,7 @@ export async function create(
   return await prisma.event.create({
     data: {
       name: input.name,
-      slug, // ← TAMBAHIN SLUG
+      slug, 
       description: input.description,
       category: input.category,
       location: input.location,
@@ -159,10 +150,7 @@ export async function findAll(query: EventQuery) {
   };
 }
 
-/**
- * Find event by UUID (internal use — transaction, voucher, dll).
- * JANGAN HAPUS — masih dipake di banyak tempat.
- */
+
 export async function findById(id: string) {
   const event = await prisma.event.findUnique({
     where: { id },
@@ -177,10 +165,7 @@ export async function findById(id: string) {
   return event;
 }
 
-/**
- * Find event by SLUG (public URL lookup).
- * Dipake buat halaman detail event di frontend.
- */
+
 export async function findBySlug(slug: string) {
   const event = await prisma.event.findUnique({
     where: { slug },
@@ -218,7 +203,7 @@ export async function update(
       try {
         await deleteImage(event.imageUrl);
       } catch {
-        // ignore
+      
       }
     }
     const { secure_url } = await uploadImage(file, "eventura/events");
