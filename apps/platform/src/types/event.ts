@@ -1,16 +1,3 @@
-export interface Event {
-  id: string;
-  title: string;
-  date: string;
-  venue: string;
-  city: string;
-  price: number;
-  currency: string;
-  category: EventCategory;
-  imageUrl?: string;
-  attendees: number;
-}
-
 export type EventCategory =
   | "conference"
   | "workshop"
@@ -18,3 +5,5 @@ export type EventCategory =
   | "concert"
   | "sports"
   | "party";
+
+export type { ApiEvent as Event, ApiTicketType } from "@/utils/api";

@@ -27,6 +27,11 @@ enum TransactionStatus {
   CANCELED
 }
 
+enum Provider {
+  CREDENTIALS
+  GOOGLE
+}
+
 // ============================================================
 // MODELS
 // ============================================================
@@ -43,14 +48,19 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  referredBy   User?  @relation("Referrals", fields: [referredById], references: [id])
-  referrals    User[] @relation("Referrals")
+  referredBy User?  @relation("Referrals", fields: [referredById], references: [id])
+  referrals  User[] @relation("Referrals")
 
-  events       Event[]
-  transactions Transaction[]
-  reviews      Review[]
-  points       Point[]
-  coupons      Coupon[]
+  events           Event[]
+  transactions     Transaction[]
+  reviews          Review[]
+  points           Point[]
+  coupons          Coupon[]
+  resetToken       String?       @map("reset_token")
+  resetTokenExpiry DateTime?     @map("reset_token_expiry")
+  refreshToken     RefreshToken?
+  resetTokenUsed   Boolean       @default(false) @map("reset_token_used")
+  provider         Provider      @default(CREDENTIALS)
 
   @@map("users")
 }
@@ -60,6 +70,7 @@ model Event {
   name        String
   description String
   category    String
+  slug        String   @unique
   location    String
   venue       String
   imageUrl    String?  @map("image_url")
@@ -156,10 +167,10 @@ model Transaction {
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
-  user    User     @relation(fields: [userId], references: [id])
-  event   Event    @relation(fields: [eventId], references: [id])
-  voucher Voucher? @relation(fields: [voucherId], references: [id])
-  coupon  Coupon?  @relation(fields: [couponId], references: [id])
+  user    User              @relation(fields: [userId], references: [id])
+  event   Event             @relation(fields: [eventId], references: [id])
+  voucher Voucher?          @relation(fields: [voucherId], references: [id])
+  coupon  Coupon?           @relation(fields: [couponId], references: [id])
   items   TransactionItem[]
 
   @@index([status])
@@ -194,4 +205,17 @@ model Review {
 
   @@unique([userId, eventId])
   @@map("reviews")
+}
+
+model RefreshToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token     String   @unique
+  userId    String   @unique @map("user_id") @db.Uuid
+  expiredAt DateTime @map("expired_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
 }

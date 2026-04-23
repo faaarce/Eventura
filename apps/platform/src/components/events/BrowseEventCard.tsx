@@ -1,8 +1,9 @@
 import { MapPin, CalendarDays } from "lucide-react";
-import type { Event } from "@/types/event";
+import { Link } from "react-router-dom";
+import type { ApiEvent } from "@/utils/api";
 
 interface BrowseEventCardProps {
-  event: Event;
+  event: ApiEvent;
 }
 
 const categoryGradients: Record<string, string> = {
@@ -15,70 +16,65 @@ const categoryGradients: Record<string, string> = {
 };
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
+  return new Date(dateStr).toLocaleDateString("en-US", {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
 }
 
-function formatPrice(price: number, currency: string): string {
+function formatPrice(price: number): string {
   if (price === 0) return "Free";
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
-    currency,
+    currency: "IDR",
     minimumFractionDigits: 0,
   }).format(price);
 }
 
 export function BrowseEventCard({ event }: BrowseEventCardProps) {
-  const gradient = categoryGradients[event.category] ?? "from-[#328f97] to-[#1a5c62]";
+  const categoryKey = event.category.toLowerCase();
+  const gradient = categoryGradients[categoryKey] ?? "from-[#328f97] to-[#1a5c62]";
+  const minPrice = event.isFree
+    ? 0
+    : event.ticketTypes.length > 0
+      ? Math.min(...event.ticketTypes.map((t) => t.price))
+      : 0;
+  const totalAvailable = event.ticketTypes.reduce((sum, t) => sum + t.availableSeats, 0);
 
   return (
-    <a
-      href={`/events/${event.id}`}
+    <Link
+      to={`/events/${event.slug}`}
       className="group flex flex-col overflow-hidden rounded-xl border border-white/8 bg-white/4 no-underline transition-all duration-200 hover:-translate-y-1 hover:border-white/18 hover:bg-white/8"
     >
-      <div
-        className={`relative aspect-square w-full bg-linear-to-br ${gradient}`}
-      >
-        <span
-          className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-xs font-bold backdrop-blur-md sm:left-3 sm:top-3 sm:px-3 ${
-            event.price === 0
-              ? "bg-white text-[#0a0a0a]"
-              : "bg-black/50 text-white"
-          }`}
-        >
-          {formatPrice(event.price, event.currency)}
+      <div className={`relative aspect-square w-full bg-linear-to-br ${gradient}`}>
+        {event.imageUrl && (
+          <img src={event.imageUrl} alt={event.name} className="absolute inset-0 h-full w-full object-cover" />
+        )}
+        <span className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-xs font-bold backdrop-blur-md sm:left-3 sm:top-3 sm:px-3 ${
+          minPrice === 0 ? "bg-white text-[#0a0a0a]" : "bg-black/50 text-white"
+        }`}>
+          {formatPrice(minPrice)}
         </span>
-
         <span className="absolute bottom-2.5 left-2.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold capitalize text-white backdrop-blur-md sm:bottom-3 sm:left-3 sm:px-3">
           {event.category}
         </span>
-
         <span className="absolute bottom-2.5 right-2.5 rounded-full bg-black/45 px-2.5 py-1 text-xs font-semibold text-white/80 backdrop-blur-md sm:bottom-3 sm:right-3 sm:px-3">
-          {event.attendees} going
+          {totalAvailable} seats
         </span>
       </div>
 
       <div className="flex flex-1 flex-col p-3.5 sm:p-4">
         <div className="flex items-center gap-1.5 text-[11px] font-semibold text-white/50 sm:text-xs">
           <CalendarDays size={12} />
-          {formatDate(event.date)}
+          {formatDate(event.startDate)}
         </div>
-
-        <h3 className="mt-1.5 text-[13px] font-bold leading-snug text-white sm:text-sm">
-          {event.title}
-        </h3>
-
+        <h3 className="mt-1.5 text-[13px] font-bold leading-snug text-white sm:text-sm">{event.name}</h3>
         <div className="mt-auto flex items-center gap-1.5 pt-3 text-[11px] text-white/40 sm:text-xs">
           <MapPin size={12} className="shrink-0" />
-          <span className="truncate">
-            {event.venue}, {event.city}
-          </span>
+          <span className="truncate">{event.venue}, {event.location}</span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }

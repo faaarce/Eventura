@@ -1,12 +1,53 @@
+// ============================================================
+// CHANGES DI apps/api/src/routes/auth.routes.ts
+// ============================================================
+//
+// 1. Import `authenticateResetToken` middleware
+// 2. Apply ke route `/reset-password`
+// ============================================================
+
+// File full-nya jadi kayak gini:
+
 import { Router } from "express";
-import { AuthController } from "../controllers/auth.controller.js";
-import { authenticate } from "../middleware/auth.middleware.js";
+import {
+  register,
+  login,
+  googleLogin,
+  getProfile,
+  updateProfile,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  getOrganizerPublicProfile,
+  refreshToken,
+  logoutUser,
+} from "../controllers/auth.controller.js";
+import {
+  authenticate,
+  authenticateResetToken, 
+} from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const router = Router();
-const controller = new AuthController();
 
-router.post("/register", controller.register);
-router.post("/login", controller.login);
-router.get("/profile", authenticate, controller.getProfile);
+router.post("/register", register);
+router.post("/login", login);
+router.post("/google", googleLogin);
+router.post("/refresh", refreshToken);
+router.post("/logout", logoutUser);
+router.post("/forgot-password", forgotPassword);
+
+
+router.post("/reset-password", authenticateResetToken, resetPassword);
+
+router.get("/profile", authenticate, getProfile);
+router.patch(
+  "/profile",
+  authenticate,
+  upload().single("profileImage"),
+  updateProfile,
+);
+router.patch("/change-password", authenticate, changePassword);
+router.get("/organizer/:id", getOrganizerPublicProfile);
 
 export { router as authRouter };

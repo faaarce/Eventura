@@ -1,41 +1,57 @@
+// ============================================================
+// REPLACE apps/api/src/routes/event.routes.ts
+// ============================================================
+//
+// Tambahin route baru `/slug/:slug`.
+//
+// ⚠️ URUTAN PENTING!
+//    Route `/slug/:slug` HARUS di ATAS `/:id`.
+//    Kalau kebalik, Express bakal match `/:id` dulu dan
+//    nganggep "slug" sebagai UUID → error.
+// ============================================================
+
 import { Router } from "express";
-import { EventController } from "../controllers/event.controller.js";
+import {
+  create,
+  findAll,
+  findById,
+  findBySlug, // ← TAMBAH IMPORT
+  update,
+  remove,
+  getMyEvents,
+} from "../controllers/event.controller.js";
 import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const router = Router();
-const controller = new EventController();
 
-// Organizer-only routes (must be before /:id)
+// Organizer routes (harus di atas biar gak ke-match "my-events" sebagai id)
 router.get(
   "/organizer/my-events",
   authenticate,
   authorize("ORGANIZER"),
-  controller.getMyEvents
+  getMyEvents,
 );
 
+// Mutations
 router.post(
   "/",
   authenticate,
   authorize("ORGANIZER"),
-  controller.create
+  upload(5).single("image"),
+  create,
 );
-
 router.put(
   "/:id",
   authenticate,
   authorize("ORGANIZER"),
-  controller.update
+  upload(5).single("image"),
+  update,
 );
+router.delete("/:id", authenticate, authorize("ORGANIZER"), remove);
 
-router.delete(
-  "/:id",
-  authenticate,
-  authorize("ORGANIZER"),
-  controller.delete
-);
-
-// Public routes
-router.get("/", controller.findAll);
-router.get("/:id", controller.findById);
-
+// Public reads
+router.get("/", findAll);
+router.get("/slug/:slug", findBySlug); 
+router.get("/:id", findById); 
 export { router as eventRouter };
