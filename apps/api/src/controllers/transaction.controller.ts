@@ -49,7 +49,7 @@ export async function findById(
 ) {
   try {
     const result = await transactionService.findById(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
     );
     res.json({ success: true, data: result });
@@ -75,7 +75,7 @@ export async function uploadPaymentProof(
       return;
     }
     const result = await transactionService.uploadPaymentProof(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
       file,
     );
@@ -88,7 +88,7 @@ export async function uploadPaymentProof(
 export async function cancel(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await transactionService.cancelTransaction(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
     );
     res.json({ success: true, data: result });
@@ -100,7 +100,7 @@ export async function cancel(req: Request, res: Response, next: NextFunction) {
 export async function accept(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await transactionService.acceptTransaction(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
     );
     res.json({ success: true, data: result });
@@ -112,7 +112,7 @@ export async function accept(req: Request, res: Response, next: NextFunction) {
 export async function reject(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await transactionService.rejectTransaction(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
     );
     res.json({ success: true, data: result });

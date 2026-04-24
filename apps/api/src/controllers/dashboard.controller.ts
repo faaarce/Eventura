@@ -21,7 +21,7 @@ export async function getEvents(req: Request, res: Response, next: NextFunction)
 
 export async function getAttendees(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await dashboardService.getAttendees(req.user!.userId, req.params.eventId, req.query as Record<string, string>);
+    const result = await dashboardService.getAttendees(req.user!.userId, req.params.eventId as string, req.query as Record<string, string>);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

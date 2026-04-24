@@ -13,7 +13,7 @@ const createVoucherSchema = z.object({
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
     const data = createVoucherSchema.parse(req.body);
-    const result = await voucherService.create(req.user!.userId, req.params.eventId, data);
+    const result = await voucherService.create(req.user!.userId, req.params.eventId as string, data);
     res.status(201).json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -22,7 +22,7 @@ export async function create(req: Request, res: Response, next: NextFunction) {
 
 export async function listByEvent(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await voucherService.listByEvent(req.user!.userId, req.params.eventId);
+    const result = await voucherService.listByEvent(req.user!.userId, req.params.eventId as string);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -31,7 +31,7 @@ export async function listByEvent(req: Request, res: Response, next: NextFunctio
 
 export async function verifyCode(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await voucherService.verifyCode(req.params.eventId, req.params.code);
+    const result = await voucherService.verifyCode(req.params.eventId as string, req.params.code as string);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

@@ -61,7 +61,7 @@ export async function findById(
   next: NextFunction,
 ) {
   try {
-    const result = await eventService.findById(req.params.id);
+    const result = await eventService.findById(req.params.id as string);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -75,7 +75,7 @@ export async function findBySlug(
   next: NextFunction,
 ) {
   try {
-    const result = await eventService.findBySlug(req.params.slug);
+    const result = await eventService.findBySlug(req.params.slug as string);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -86,7 +86,7 @@ export async function update(req: Request, res: Response, next: NextFunction) {
   try {
     const file = req.file;
     const result = await eventService.update(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
       req.body,
       file,
@@ -100,7 +100,7 @@ export async function update(req: Request, res: Response, next: NextFunction) {
 export async function remove(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await eventService.remove(
-      req.params.id,
+      req.params.id as string,
       req.user!.userId,
     );
     res.json({ success: true, data: result });

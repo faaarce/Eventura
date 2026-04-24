@@ -211,7 +211,7 @@ export async function getOrganizerPublicProfile(
   next: NextFunction,
 ) {
   try {
-    const result = await authService.getOrganizerPublicProfile(req.params.id);
+    const result = await authService.getOrganizerPublicProfile(req.params.id as string);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

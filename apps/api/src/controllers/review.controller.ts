@@ -10,7 +10,7 @@ const createReviewSchema = z.object({
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
     const data = createReviewSchema.parse(req.body);
-    const result = await reviewService.create(req.user!.userId, req.params.eventId, data);
+    const result = await reviewService.create(req.user!.userId, req.params.eventId as string, data);
     res.status(201).json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -21,7 +21,7 @@ export async function listByEvent(req: Request, res: Response, next: NextFunctio
   try {
     const page = parseInt((req.query.page as string) || "1");
     const limit = parseInt((req.query.limit as string) || "10");
-    const result = await reviewService.listByEvent(req.params.eventId, page, limit);
+    const result = await reviewService.listByEvent(req.params.eventId as string, page, limit);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

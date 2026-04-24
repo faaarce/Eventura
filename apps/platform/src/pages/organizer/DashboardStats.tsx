@@ -147,9 +147,10 @@ export default function DashboardStats() {
                         borderRadius: "12px",
                         fontSize: "12px",
                       }}
-                      formatter={(value: number, name: string) => {
-                        if (name === "revenue") return [formatPrice(value), "Revenue"];
-                        return [value, "Transaksi"];
+                      formatter={(value, name) => {
+			const num = Number(value);
+                        if (name === "revenue") return [formatPrice(num), "Revenue"];
+                        return [num, "Transaksi"];
                       }}
                       labelStyle={{ color: "#fff", fontWeight: 600 }}
                     />
