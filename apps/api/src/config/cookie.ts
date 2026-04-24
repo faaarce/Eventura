@@ -1,8 +1,10 @@
 import type { CookieOptions } from "express";
 
+const useHttps = process.env.BASE_URL?.startsWith("https://") ?? false;
+
 export const cookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure: useHttps,
+  sameSite: useHttps ? "none" : "lax",
   path: "/",
 };

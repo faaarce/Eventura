@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAtomValue } from 'jotai'
 import { userAtom } from './stores/auth'
+import { getCurrentUser } from './utils/auth' 
 
 import HomePage from './pages/HomePage'
 import AboutPage from './pages/AboutPage'
@@ -32,8 +33,10 @@ function RequireAuth({
   children: React.ReactNode
   role?: 'ORGANIZER' | 'CUSTOMER'
 }) {
-  const user = useAtomValue(userAtom)
+  const userFromAtom = useAtomValue(userAtom)
   const location = useLocation()
+
+  const user = userFromAtom ?? getCurrentUser()
 
   if (!user) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />
