@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm with-env tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/utils/templates dist/utils/templates",
     "start": "node dist/index.js",
     "db:migrate": "pnpm prisma migrate dev",
     "db:generate": "pnpm prisma generate",
