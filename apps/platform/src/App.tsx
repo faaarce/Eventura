@@ -2,8 +2,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAtomValue } from 'jotai'
 import { userAtom } from './stores/auth'
 import { getCurrentUser } from './utils/auth' 
-
-import HomePage from './pages/HomePage'
 import AboutPage from './pages/AboutPage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
@@ -50,7 +48,7 @@ function RequireAuth({
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<Navigate to="/events" replace />} />
       <Route path="/about" element={<AboutPage />} />
 
       <Route path="/auth/login" element={<LoginPage />} />
