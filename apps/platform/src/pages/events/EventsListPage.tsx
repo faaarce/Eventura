@@ -19,6 +19,11 @@ export default function EventsListPage() {
   );
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const [activeDate, setActiveDate] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+  setPage(1);
+}, [debouncedSearch, activeCategory, activePrice, activeCity, activeDate]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -36,7 +41,8 @@ export default function EventsListPage() {
           : undefined,
     location: activeCity || undefined,
     dateFilter: activeDate || undefined,
-    limit: 20,
+    page,
+    limit: 12,
   };
 
   const { data, isLoading, error } = useQuery({
@@ -45,6 +51,7 @@ export default function EventsListPage() {
   });
 
   const events = data?.events ?? [];
+  const pagination = data?.pagination;
 
   return (
     <BrowseLayout>
