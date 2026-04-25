@@ -1,7 +1,7 @@
 import { prisma } from "../utils/prisma.js";
 import { ApiError } from "../utils/helpers.js";
 import { uploadImage, deleteImage } from "../utils/cloudinary.js";
-import { generateSlug } from "../utils/generate-slug.js"; 
+import { generateSlug } from "../utils/generate-slug.js";
 
 interface CreateEventInput {
   name: string;
@@ -26,8 +26,8 @@ interface EventQuery {
   sortBy?: string;
   sortOrder?: string;
   organizerId?: string;
+  dateFilter?: string;
 }
-
 
 async function generateUniqueSlug(
   name: string,
@@ -45,7 +45,7 @@ async function generateUniqueSlug(
       },
     });
 
-    if (!existing) break; 
+    if (!existing) break;
 
     slug = `${baseSlug}-${counter}`;
     counter++;
@@ -70,7 +70,6 @@ export async function create(
     throw new ApiError(400, "Free events cannot have paid ticket types");
   }
 
-  
   const slug = await generateUniqueSlug(input.name);
 
   let imageUrl = input.imageUrl;
@@ -82,7 +81,7 @@ export async function create(
   return await prisma.event.create({
     data: {
       name: input.name,
-      slug, 
+      slug,
       description: input.description,
       category: input.category,
       location: input.location,
@@ -130,6 +129,36 @@ export async function findAll(query: EventQuery) {
   if (query.isFree !== undefined) where.isFree = query.isFree === "true";
   if (query.organizerId) where.organizerId = query.organizerId;
 
+  if (query.dateFilter) {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+
+    let startRange: Date | undefined;
+    let endRange: Date | undefined;
+
+    if (query.dateFilter === "today") {
+      startRange = new Date(y, m, d);
+      endRange = new Date(y, m, d + 1);
+    } else if (query.dateFilter === "tomorrow") {
+      startRange = new Date(y, m, d + 1);
+      endRange = new Date(y, m, d + 2);
+    } else if (query.dateFilter === "this-week") {
+      const dayOfWeek = now.getDay();
+      const daysUntilSunday = dayOfWeek === 0 ? 7 : 7 - dayOfWeek;
+      startRange = new Date(y, m, d);
+      endRange = new Date(y, m, d + daysUntilSunday + 1);
+    } else if (query.dateFilter === "this-month") {
+      startRange = new Date(y, m, d);
+      endRange = new Date(y, m + 1, 1);
+    }
+
+    if (startRange && endRange) {
+      where.startDate = { gte: startRange, lt: endRange };
+    }
+  }
+
   const [events, total] = await Promise.all([
     prisma.event.findMany({
       where,
@@ -150,7 +179,6 @@ export async function findAll(query: EventQuery) {
   };
 }
 
-
 export async function findById(id: string) {
   const event = await prisma.event.findUnique({
     where: { id },
@@ -164,7 +192,6 @@ export async function findById(id: string) {
   if (!event) throw new ApiError(404, "Event not found");
   return event;
 }
-
 
 export async function findBySlug(slug: string) {
   const event = await prisma.event.findUnique({
@@ -202,9 +229,7 @@ export async function update(
     if (event.imageUrl) {
       try {
         await deleteImage(event.imageUrl);
-      } catch {
-      
-      }
+      } catch {}
     }
     const { secure_url } = await uploadImage(file, "eventura/events");
     imageUrl = secure_url;

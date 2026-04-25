@@ -134,6 +134,8 @@ export async function fetchEvents(
     search?: string;
     category?: string;
     isFree?: boolean;
+    location?: string;
+    dateFilter?: string;
     organizerId?: string;
     page?: number;
     limit?: number;
@@ -143,6 +145,8 @@ export async function fetchEvents(
   if (params.search) searchParams.search = params.search;
   if (params.category) searchParams.category = params.category;
   if (params.isFree !== undefined) searchParams.isFree = String(params.isFree);
+   if (params.location) searchParams.location = params.location;
+  if (params.dateFilter) searchParams.dateFilter = params.dateFilter;
   if (params.organizerId) searchParams.organizerId = params.organizerId;
   if (params.page) searchParams.page = String(params.page);
   if (params.limit) searchParams.limit = String(params.limit);
