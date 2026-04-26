@@ -25,7 +25,7 @@ import { upload } from "../middleware/upload.middleware.js";
 
 const router = Router();
 
-// Organizer routes (harus di atas biar gak ke-match "my-events" sebagai id)
+
 router.get(
   "/organizer/my-events",
   authenticate,

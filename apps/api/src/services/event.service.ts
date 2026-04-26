@@ -218,7 +218,7 @@ export async function update(
   if (event.organizerId !== organizerId)
     throw new ApiError(403, "You can only edit your own events");
 
-  // Regenerate slug kalau name berubah
+  
   let slug = event.slug;
   if (input.name && input.name !== event.name) {
     slug = await generateUniqueSlug(input.name, eventId);

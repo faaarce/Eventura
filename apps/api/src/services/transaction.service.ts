@@ -397,7 +397,7 @@ export async function rollbackTransaction(
       include: { items: true },
     });
 
-    // Already in terminal state — return as-is
+    
     if (["DONE", "REJECTED", "EXPIRED", "CANCELED"].includes(trx.status)) {
       return await tx.transaction.findUniqueOrThrow({
         where: { id: transactionId },

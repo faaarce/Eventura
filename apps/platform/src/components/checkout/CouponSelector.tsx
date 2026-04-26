@@ -7,11 +7,7 @@ interface CouponSelectorProps {
   coupons: Coupon[];
   selectedCouponId: string | null;
   onSelect: (couponId: string | null) => void;
-  /**
-   * Subtotal setelah voucher/points dikurangin.
-   * Dipake buat disable coupon yg discount-nya > subtotal
-   * (biar gak kepakai sia-sia).
-   */
+ 
   remainingAmount?: number;
 }
 

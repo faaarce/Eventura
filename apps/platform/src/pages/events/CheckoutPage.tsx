@@ -82,25 +82,21 @@ export default function CheckoutPage() {
   const gradient = categoryGradients[event.category.toLowerCase()] ?? "from-[#328f97] to-[#1a5c62]";
   const hasItems = Object.values(quantities).some((q) => q > 0);
 
-  // Cari coupon yg dipilih
+ 
   const selectedCoupon = coupons.find((c) => c.id === selectedCouponId) ?? null;
 
-  // ============================================================
-  // HITUNG TOTAL — match urutan di backend (transaction.service.ts):
-  // finalPrice = max(0, totalPrice - voucher - coupon - points)
-  // ============================================================
   const afterVoucher = Math.max(0, subtotal - voucherDiscount);
 
-  // Coupon discount, di-cap sama sisa setelah voucher
+  
   const couponDiscountRaw = selectedCoupon?.discountAmount ?? 0;
   const couponApplied = Math.min(couponDiscountRaw, afterVoucher);
   const afterCoupon = Math.max(0, afterVoucher - couponDiscountRaw);
 
-  // Points, di-cap sama sisa setelah coupon
+ 
   const pointsApplied = usePoints ? Math.min(totalPoints, afterCoupon) : 0;
   const total = Math.max(0, afterCoupon - pointsApplied);
 
-  // Warning: coupon "kebuang" karena discount > afterVoucher
+
   const couponWasted =
     selectedCoupon !== null && couponDiscountRaw > afterVoucher && afterVoucher < couponDiscountRaw;
 
@@ -265,7 +261,7 @@ export default function CheckoutPage() {
           {voucherError && <p className="mt-2 text-xs font-semibold text-red-400">{voucherError}</p>}
         </section>
 
-        {/* ================== COUPON SELECTOR ================== */}
+      
         {hasItems && subtotal > 0 && coupons.length > 0 && (
           <section className="rise-in mt-6 sm:mt-8" style={{ animationDelay: "140ms" }}>
             <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white/70">
